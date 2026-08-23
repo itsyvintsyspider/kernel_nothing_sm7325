@@ -384,11 +384,11 @@ static int uid_cputime_open(struct inode *inode, struct file *file)
 	return single_open(file, uid_cputime_show, PDE_DATA(inode));
 }
 
-static const struct file_operations uid_cputime_fops = {
-	.open		= uid_cputime_open,
-	.read		= seq_read,
-	.llseek		= seq_lseek,
-	.release	= single_release,
+static const struct proc_ops uid_cputime_proc_ops = {
+	.proc_open           = uid_cputime_open,
+	.proc_read           = seq_read,
+	.proc_lseek          = seq_lseek,
+	.proc_release        = single_release,
 };
 
 static int uid_remove_open(struct inode *inode, struct file *file)
@@ -440,10 +440,10 @@ static ssize_t uid_remove_write(struct file *file,
 	return count;
 }
 
-static const struct file_operations uid_remove_fops = {
-	.open		= uid_remove_open,
-	.release	= single_release,
-	.write		= uid_remove_write,
+static const struct proc_ops uid_remove_proc_ops = {
+	.proc_open           = uid_remove_open,
+	.proc_release        = single_release,
+	.proc_write          = uid_remove_write,
 };
 
 
@@ -559,11 +559,11 @@ static int uid_io_open(struct inode *inode, struct file *file)
 	return single_open(file, uid_io_show, PDE_DATA(inode));
 }
 
-static const struct file_operations uid_io_fops = {
-	.open		= uid_io_open,
-	.read		= seq_read,
-	.llseek		= seq_lseek,
-	.release	= single_release,
+static const struct proc_ops uid_io_proc_ops = {
+	.proc_open           = uid_io_open,
+	.proc_read           = seq_read,
+	.proc_lseek          = seq_lseek,
+	.proc_release        = single_release,
 };
 
 static int uid_procstat_open(struct inode *inode, struct file *file)
@@ -616,10 +616,10 @@ static ssize_t uid_procstat_write(struct file *file,
 	return count;
 }
 
-static const struct file_operations uid_procstat_fops = {
-	.open		= uid_procstat_open,
-	.release	= single_release,
-	.write		= uid_procstat_write,
+static const struct proc_ops uid_procstat_proc_ops = {
+	.proc_open           = uid_procstat_open,
+	.proc_release        = single_release,
+	.proc_write          = uid_procstat_write,
 };
 
 static int process_notifier(struct notifier_block *self,
@@ -668,9 +668,9 @@ static int __init proc_uid_sys_stats_init(void)
 	}
 
 	proc_create_data("remove_uid_range", 0222, cpu_parent,
-		&uid_remove_fops, NULL);
+		&uid_remove_proc_ops, NULL);
 	proc_create_data("show_uid_stat", 0444, cpu_parent,
-		&uid_cputime_fops, NULL);
+		&uid_cputime_proc_ops, NULL);
 
 	io_parent = proc_mkdir("uid_io", NULL);
 	if (!io_parent) {
@@ -680,7 +680,7 @@ static int __init proc_uid_sys_stats_init(void)
 	}
 
 	proc_create_data("stats", 0444, io_parent,
-		&uid_io_fops, NULL);
+		&uid_io_proc_ops, NULL);
 
 	proc_parent = proc_mkdir("uid_procstat", NULL);
 	if (!proc_parent) {
@@ -690,7 +690,7 @@ static int __init proc_uid_sys_stats_init(void)
 	}
 
 	proc_create_data("set", 0222, proc_parent,
-		&uid_procstat_fops, NULL);
+		&uid_procstat_proc_ops, NULL);
 
 	profile_event_register(PROFILE_TASK_EXIT, &process_notifier_block);
 

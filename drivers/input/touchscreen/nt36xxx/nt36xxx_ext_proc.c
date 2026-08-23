@@ -334,12 +334,11 @@ static int32_t nvt_fw_version_open(struct inode *inode, struct file *file)
 	return seq_open(file, &nvt_fw_version_seq_ops);
 }
 
-static const struct file_operations nvt_fw_version_fops = {
-	.owner = THIS_MODULE,
-	.open = nvt_fw_version_open,
-	.read = seq_read,
-	.llseek = seq_lseek,
-	.release = seq_release,
+static const struct proc_ops nvt_fw_version_proc_ops = {
+	.proc_open = nvt_fw_version_open,
+	.proc_read = seq_read,
+	.proc_lseek = seq_lseek,
+	.proc_release = seq_release,
 };
 
 /*******************************************************
@@ -389,12 +388,11 @@ static int32_t nvt_baseline_open(struct inode *inode, struct file *file)
 	return seq_open(file, &nvt_seq_ops);
 }
 
-static const struct file_operations nvt_baseline_fops = {
-	.owner = THIS_MODULE,
-	.open = nvt_baseline_open,
-	.read = seq_read,
-	.llseek = seq_lseek,
-	.release = seq_release,
+static const struct proc_ops nvt_baseline_proc_ops = {
+	.proc_open = nvt_baseline_open,
+	.proc_read = seq_read,
+	.proc_lseek = seq_lseek,
+	.proc_release = seq_release,
 };
 
 /*******************************************************
@@ -447,12 +445,11 @@ static int32_t nvt_raw_open(struct inode *inode, struct file *file)
 	return seq_open(file, &nvt_seq_ops);
 }
 
-static const struct file_operations nvt_raw_fops = {
-	.owner = THIS_MODULE,
-	.open = nvt_raw_open,
-	.read = seq_read,
-	.llseek = seq_lseek,
-	.release = seq_release,
+static const struct proc_ops nvt_raw_proc_ops = {
+	.proc_open = nvt_raw_open,
+	.proc_read = seq_read,
+	.proc_lseek = seq_lseek,
+	.proc_release = seq_release,
 };
 
 /*******************************************************
@@ -505,12 +502,11 @@ static int32_t nvt_diff_open(struct inode *inode, struct file *file)
 	return seq_open(file, &nvt_seq_ops);
 }
 
-static const struct file_operations nvt_diff_fops = {
-	.owner = THIS_MODULE,
-	.open = nvt_diff_open,
-	.read = seq_read,
-	.llseek = seq_lseek,
-	.release = seq_release,
+static const struct proc_ops nvt_diff_proc_ops = {
+	.proc_open = nvt_diff_open,
+	.proc_read = seq_read,
+	.proc_lseek = seq_lseek,
+	.proc_release = seq_release,
 };
 
 /*******************************************************
@@ -523,7 +519,7 @@ return:
 *******************************************************/
 int32_t nvt_extra_proc_init(void)
 {
-	NVT_proc_fw_version_entry = proc_create(NVT_FW_VERSION, 0444, NULL,&nvt_fw_version_fops);
+	NVT_proc_fw_version_entry = proc_create(NVT_FW_VERSION, 0444, NULL,&nvt_fw_version_proc_ops);
 	if (NVT_proc_fw_version_entry == NULL) {
 		NVT_ERR("create proc/%s Failed!\n", NVT_FW_VERSION);
 		return -ENOMEM;
@@ -531,7 +527,7 @@ int32_t nvt_extra_proc_init(void)
 		NVT_LOG("create proc/%s Succeeded!\n", NVT_FW_VERSION);
 	}
 
-	NVT_proc_baseline_entry = proc_create(NVT_BASELINE, 0444, NULL,&nvt_baseline_fops);
+	NVT_proc_baseline_entry = proc_create(NVT_BASELINE, 0444, NULL,&nvt_baseline_proc_ops);
 	if (NVT_proc_baseline_entry == NULL) {
 		NVT_ERR("create proc/%s Failed!\n", NVT_BASELINE);
 		return -ENOMEM;
@@ -539,7 +535,7 @@ int32_t nvt_extra_proc_init(void)
 		NVT_LOG("create proc/%s Succeeded!\n", NVT_BASELINE);
 	}
 
-	NVT_proc_raw_entry = proc_create(NVT_RAW, 0444, NULL,&nvt_raw_fops);
+	NVT_proc_raw_entry = proc_create(NVT_RAW, 0444, NULL,&nvt_raw_proc_ops);
 	if (NVT_proc_raw_entry == NULL) {
 		NVT_ERR("create proc/%s Failed!\n", NVT_RAW);
 		return -ENOMEM;
@@ -547,7 +543,7 @@ int32_t nvt_extra_proc_init(void)
 		NVT_LOG("create proc/%s Succeeded!\n", NVT_RAW);
 	}
 
-	NVT_proc_diff_entry = proc_create(NVT_DIFF, 0444, NULL,&nvt_diff_fops);
+	NVT_proc_diff_entry = proc_create(NVT_DIFF, 0444, NULL,&nvt_diff_proc_ops);
 	if (NVT_proc_diff_entry == NULL) {
 		NVT_ERR("create proc/%s Failed!\n", NVT_DIFF);
 		return -ENOMEM;
