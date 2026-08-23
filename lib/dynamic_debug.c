@@ -873,13 +873,12 @@ static int ddebug_proc_open(struct inode *inode, struct file *file)
 				sizeof(struct ddebug_iter));
 }
 
-static const struct file_operations ddebug_proc_fops = {
-	.owner = THIS_MODULE,
-	.open = ddebug_proc_open,
-	.read = seq_read,
-	.llseek = seq_lseek,
-	.release = seq_release_private,
-	.write = ddebug_proc_write
+static const struct proc_ops ddebug_proc_ops = {
+	.proc_open = ddebug_proc_open,
+	.proc_read = seq_read,
+	.proc_lseek = seq_lseek,
+	.proc_release = seq_release_private,
+	.proc_write = ddebug_proc_write
 };
 
 /*
@@ -1009,13 +1008,13 @@ static int __init dynamic_debug_init_control(void)
 	if (debugfs_initialized()) {
 		debugfs_dir = debugfs_create_dir("dynamic_debug", NULL);
 		debugfs_create_file("control", 0644, debugfs_dir, NULL,
-				    &ddebug_proc_fops);
+				    &ddebug_proc_ops);
 	}
 
 	/* Also create the control file in procfs */
 	procfs_dir = proc_mkdir("dynamic_debug", NULL);
 	if (procfs_dir)
-		proc_create("control", 0644, procfs_dir, &ddebug_proc_fops);
+		proc_create("control", 0644, procfs_dir, &ddebug_proc_ops);
 
 	return 0;
 }

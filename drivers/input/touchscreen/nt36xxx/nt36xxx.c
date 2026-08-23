@@ -1725,10 +1725,10 @@ static int32_t nvt_flash_close(struct inode *inode, struct file *file)
 	return 0;
 }
 
-static const struct file_operations nvt_flash_fops = {
-	.open = nvt_flash_open,
-	.release = nvt_flash_close,
-	.read = nvt_flash_read,
+static const struct proc_ops nvt_flash_proc_ops = {
+	.proc_open = nvt_flash_open,
+	.proc_release = nvt_flash_close,
+	.proc_read = nvt_flash_read,
 };
 
 /*******************************************************
@@ -1740,7 +1740,7 @@ static const struct file_operations nvt_flash_fops = {
  *******************************************************/
 static int32_t nvt_flash_proc_init(void)
 {
-	NVT_proc_entry = proc_create(DEVICE_NAME, 0444, NULL,&nvt_flash_fops);
+	NVT_proc_entry = proc_create(DEVICE_NAME, 0444, NULL,&nvt_flash_proc_ops);
 	if (NVT_proc_entry == NULL) {
 		NVT_ERR("Failed!\n");
 		return -ENOMEM;
