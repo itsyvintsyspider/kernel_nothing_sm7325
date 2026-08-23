@@ -1648,11 +1648,11 @@ static int modem_restart_open(struct inode *inode, struct file *file)
 	return single_open(file, modem_restart_show, inode->i_private);
 }
 
-static const struct file_operations modem_restart_fops = {
-	.open = modem_restart_open,
-	.read = seq_read,
-	.llseek = seq_lseek,
-	.release = single_release,
+static const struct proc_ops modem_restart_proc_ops = {
+	.proc_open = modem_restart_open,
+	.proc_read = seq_read,
+	.proc_lseek = seq_lseek,
+	.proc_release = single_release,
 };
 #endif
 
@@ -1683,7 +1683,7 @@ static int __init subsys_restart_init(void)
 		goto err_soc;
 
 #ifdef ENABLE_MODEM_RESTART
-	dir = proc_create("modem_restart", 0440, NULL, &modem_restart_fops);
+	dir = proc_create("modem_restart", 0440, NULL, &modem_restart_proc_ops);
 	if (!dir) {
 		pr_alert("Now in %s. proc_create.dir = %p\n", __func__, dir);
 		return -1;
