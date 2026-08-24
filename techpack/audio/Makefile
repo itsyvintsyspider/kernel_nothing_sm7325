@@ -18,7 +18,7 @@ endif
 ifeq ($(CONFIG_ARCH_KONA), y)
 include $(srctree)/techpack/audio/config/konaauto.conf
 endif
-ifneq ($(filter y, $(CONFIG_ARCH_LAHAINA) $(CONFIG_ARCH_SHIMA) $(CONFIG_ARCH_YUPIK)),)
+ifeq ($(CONFIG_ARCH_LAHAINA), y)
 include $(srctree)/techpack/audio/config/lahainaauto.conf
 endif
 ifeq ($(CONFIG_ARCH_HOLI), y)
@@ -66,7 +66,7 @@ ifeq ($(CONFIG_ARCH_KONA), y)
 LINUXINCLUDE    += \
                 -include $(srctree)/techpack/audio/config/konaautoconf.h
 endif
-ifneq ($(filter y, $(CONFIG_ARCH_LAHAINA) $(CONFIG_ARCH_SHIMA) $(CONFIG_ARCH_YUPIK)),)
+ifeq ($(CONFIG_ARCH_LAHAINA), y)
 LINUXINCLUDE    += \
                 -include $(srctree)/techpack/audio/config/lahainaautoconf.h
 endif
