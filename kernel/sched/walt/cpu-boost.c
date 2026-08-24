@@ -363,6 +363,13 @@ int cpu_boost_init(void)
 			return ret;
 		}
 
+		if (cpu <= 3)
+			s->input_boost_freq = 1401600;
+		else if (cpu <= 6)
+			s->input_boost_freq = 1804800;
+		else
+			s->input_boost_freq = 0;
+
 	}
 
 	cpu_boost_kobj = kobject_create_and_add("cpu_boost",
