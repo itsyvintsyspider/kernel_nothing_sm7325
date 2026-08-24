@@ -7266,6 +7266,7 @@ static inline void ipa3_enable_napi_netdev(void)
 {
 	if (ipa3_ctx->lan_rx_napi_enable || ipa3_ctx->tx_napi_enable) {
 		init_dummy_netdev(&ipa3_ctx->generic_ndev);
+		ipa3_ctx->generic_ndev.threaded = true;
 		if(ipa3_ctx->lan_rx_napi_enable) {
 			netif_napi_add(&ipa3_ctx->generic_ndev, &ipa3_ctx->napi_lan_rx,
 					ipa3_lan_poll, NAPI_WEIGHT);
