@@ -101,9 +101,9 @@ DEFINE_PER_CPU_READ_MOSTLY(int, sched_load_boost);
 uint __read_mostly sched_bore                   = 1;
 uint __read_mostly sched_burst_smoothness_long  = 1;
 uint __read_mostly sched_burst_smoothness_short = 1;
-uint __read_mostly sched_burst_fork_atavistic   = 2;
-uint __read_mostly sched_burst_penalty_offset   = 18;
-uint __read_mostly sched_burst_penalty_scale    = 1536;
+uint __read_mostly sched_burst_fork_atavistic   = 1;
+uint __read_mostly sched_burst_penalty_offset   = 20;
+uint __read_mostly sched_burst_penalty_scale    = 1408;
 uint __read_mostly sched_burst_cache_lifetime   = 90000000;
 
 #define MAX_BURST_PENALTY (39U <<2)
