@@ -80,6 +80,7 @@ static int hif_rxthread_napi_poll(struct napi_struct *napi, int budget)
 static void hif_init_rx_thread_napi(struct qca_napi_info *napii)
 {
 	init_dummy_netdev(&napii->rx_thread_netdev);
+	napii->rx_thread_netdev.threaded = true;
 	netif_napi_add(&napii->rx_thread_netdev, &napii->rx_thread_napi,
 		       hif_rxthread_napi_poll, 64);
 	napi_enable(&napii->rx_thread_napi);
@@ -201,6 +202,7 @@ int hif_napi_create(struct hif_opaque_softc   *hif_ctx,
 			hif_warn("bad IRQ value for CE %d: %d", i, napii->irq);
 
 		init_dummy_netdev(&(napii->netdev));
+		napii->netdev.threaded = true;
 
 		NAPI_DEBUG("adding napi=%pK to netdev=%pK (poll=%pK, bdgt=%d)",
 			   &(napii->napi), &(napii->netdev), poll, budget);
