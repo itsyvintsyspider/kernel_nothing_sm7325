@@ -709,6 +709,7 @@ static struct hif_exec_context *hif_exec_napi_create(uint32_t scale)
 	ctx->exec_ctx.inited = true;
 	ctx->exec_ctx.scale_bin_shift = scale;
 	qdf_net_if_create_dummy_if((struct qdf_net_if *)&ctx->netdev);
+	ctx->netdev.threaded = true;
 	netif_napi_add(&(ctx->netdev), &(ctx->napi), hif_exec_poll,
 		       QCA_NAPI_BUDGET);
 	napi_enable(&ctx->napi);
