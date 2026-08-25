@@ -102,9 +102,9 @@ uint __read_mostly sched_bore                   = 1;
 uint __read_mostly sched_burst_smoothness_long  = 1;
 uint __read_mostly sched_burst_smoothness_short = 1;
 uint __read_mostly sched_burst_fork_atavistic   = 1;
-uint __read_mostly sched_burst_penalty_offset   = 20;
-uint __read_mostly sched_burst_penalty_scale    = 1408;
-uint __read_mostly sched_burst_cache_lifetime   = 90000000;
+uint __read_mostly sched_burst_penalty_offset   = 16;
+uint __read_mostly sched_burst_penalty_scale    = 1600;
+uint __read_mostly sched_burst_cache_lifetime   = 60000000;
 
 #define MAX_BURST_PENALTY (39U <<2)
 
