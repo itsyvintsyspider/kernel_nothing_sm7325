@@ -1,0 +1,4 @@
+// The complete Yupik IDP CamX description is maintained in this kernel tree.
+// Nothing device-tree repository. Include it from a kernel qcom DTS file
+// only when shima-idp.dtsi is not already providing this include.
+#include "camera/yupik-camera-sensor-idp.dtsi"

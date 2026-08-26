@@ -1,0 +1,4 @@
+// The complete Yupik WCD938x/WSA audio graph is maintained in this kernel tree.
+// Nothing device-tree repository. Include it from a kernel qcom DTS file
+// only when shima-idp.dtsi is not already providing this include.
+#include "yupik-audio-overlay.dtsi"

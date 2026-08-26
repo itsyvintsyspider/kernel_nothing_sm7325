@@ -212,6 +212,13 @@ config ARCH_SHIMA
 	  SHIMA chipset. If you do not wish to build a kernel that
 	  runs on this chipset or if you are unsure, say 'N' here.
 
+config NOTHING_SPACEWAR
+	bool "Enable Nothing Phone (1) Spacewar device tree"
+	depends on ARCH_QCOM && ARCH_YUPIK
+	help
+	  Enable the Nothing Phone (1) Spacewar device-tree overlay
+	  for the Yupik platform.
+
 config ARCH_HOLI
 	bool "Enable Support for Qualcomm Technologies, Inc. HOLI"
 	depends on ARCH_QCOM

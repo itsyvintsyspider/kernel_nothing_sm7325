@@ -220,6 +220,11 @@ dtb-$(CONFIG_ARCH_SHIMA) += shima-rumi.dtb  \
 endif
 
 ifeq ($(CONFIG_BUILD_ARM64_DT_OVERLAY),y)
+dtbo-$(CONFIG_ARCH_YUPIK) += nothing-spacewar-sm7325-overlay.dtbo
+nothing-spacewar-sm7325-overlay.dtbo-base := yupik.dtb
+endif
+
+ifeq ($(CONFIG_BUILD_ARM64_DT_OVERLAY),y)
 dtbo-$(CONFIG_ARCH_YUPIK) +=    \
 	yupik-qrd-overlay.dtbo \
 	yupik-qrd-pm7250b-overlay.dtbo \
