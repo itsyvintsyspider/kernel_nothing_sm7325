@@ -18,4 +18,26 @@
 	#address-cells = <1>;
 	#size-cells = <0>;
 	/delete-node/ focaltech@0;
+
+	goodix-berlin@0 {
+		compatible = "goodix,gt9916S";
+		reg = <0>;
+		spi-max-frequency = <1000000>;
+
+		goodix,avdd-name = "avdd";
+		avdd-supply = <&L3C>;
+		goodix,iovdd-name = "iovdd";
+		iovdd-supply = <&L8C>;
+
+		goodix,reset-gpio = <&tlmm 105 0x00>;
+		goodix,irq-gpio = <&tlmm 81 0x2800>;
+		goodix,irq-flags = <2>;
+		goodix,panel-max-x = <1080>;
+		goodix,panel-max-y = <2400>;
+		goodix,panel-max-w = <255>;
+		goodix,panel-max-p = <4096>;
+		goodix,pen-enable;
+		goodix,firmware-name = "goodix_firmware.bin";
+		goodix,config-name = "goodix_cfg_group.bin";
+	};
 };
