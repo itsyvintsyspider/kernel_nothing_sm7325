@@ -215,6 +215,7 @@ config ARCH_SHIMA
 config NOTHING_SPACEWAR
 	bool "Enable Nothing Phone (1) Spacewar device tree"
 	depends on ARCH_QCOM && ARCH_YUPIK
+	select NOTHING
 	help
 	  Enable the Nothing Phone (1) Spacewar device-tree overlay
 	  for the Yupik platform.

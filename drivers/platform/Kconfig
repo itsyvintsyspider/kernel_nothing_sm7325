@@ -17,3 +17,7 @@ source "drivers/platform/olpc/Kconfig"
 source "drivers/platform/surface/Kconfig"
 
 source "drivers/platform/msm/Kconfig"
+
+if ARCH_QCOM
+source "drivers/platform/nothing/Kconfig"
+endif
