@@ -1,7 +1,7 @@
 // nothing-spacewar-sm7325.dtsi
 // This file is for Nothing Phone (1) "spacewar" (SM7325 "Yupik") only.
-// Camera and touch are provided by the stock Yupik IDP include above.
-// Keep this file for Spacewar-only overrides after live-device validation.
+// Touch are provided by the stock Yupik IDP include above.
+// Spacewar uses Goodix Berlin on SPI instead of Yupik IDP's Novatek I2C path.
 
 #include "nothing-spacewar-audio-overlay.dtsi"
 
