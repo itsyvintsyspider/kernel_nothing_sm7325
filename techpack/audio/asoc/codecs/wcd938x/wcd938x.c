@@ -2797,14 +2797,14 @@ static int wcd938x_ldoh_put(struct snd_kcontrol *kcontrol,
 	return 0;
 }
 
-const char * const tx_master_ch_text[] = {
+static const char * const tx_master_ch_text[] = {
 	"ZERO", "SWRM_TX1_CH1", "SWRM_TX1_CH2", "SWRM_TX1_CH3", "SWRM_TX1_CH4",
 	"SWRM_TX2_CH1", "SWRM_TX2_CH2", "SWRM_TX2_CH3", "SWRM_TX2_CH4",
 	"SWRM_TX3_CH1", "SWRM_TX3_CH2", "SWRM_TX3_CH3", "SWRM_TX3_CH4",
 	"SWRM_PCM_IN",
 };
 
-const struct soc_enum tx_master_ch_enum =
+static const struct soc_enum tx_master_ch_enum =
 	SOC_ENUM_SINGLE_EXT(ARRAY_SIZE(tx_master_ch_text),
 					tx_master_ch_text);
 
@@ -3381,35 +3381,35 @@ static const struct snd_soc_dapm_widget wcd938x_dapm_widgets[] = {
 	SND_SOC_DAPM_MIXER_E("ADC4_MIXER", SND_SOC_NOPM, ADC4, 0, adc4_switch,
 				ARRAY_SIZE(adc4_switch), wcd938x_tx_swr_ctrl,
 				SND_SOC_DAPM_PRE_PMU | SND_SOC_DAPM_POST_PMD),
-	SND_SOC_DAPM_MIXER_E("DMIC1_MIXER", SND_SOC_NOPM, DMIC1,
+	SND_SOC_DAPM_MIXER_E("DMIC1_MIXER", SND_SOC_NOPM, DMIC0,
 				0, dmic1_switch, ARRAY_SIZE(dmic1_switch),
 				wcd938x_tx_swr_ctrl, SND_SOC_DAPM_PRE_PMU |
 				SND_SOC_DAPM_POST_PMD),
-	SND_SOC_DAPM_MIXER_E("DMIC2_MIXER", SND_SOC_NOPM, DMIC2,
+	SND_SOC_DAPM_MIXER_E("DMIC2_MIXER", SND_SOC_NOPM, DMIC1,
 				0, dmic2_switch, ARRAY_SIZE(dmic2_switch),
 				wcd938x_tx_swr_ctrl, SND_SOC_DAPM_PRE_PMU |
 				SND_SOC_DAPM_POST_PMD),
-	SND_SOC_DAPM_MIXER_E("DMIC3_MIXER", SND_SOC_NOPM, DMIC3,
+	SND_SOC_DAPM_MIXER_E("DMIC3_MIXER", SND_SOC_NOPM, DMIC2,
 				0, dmic3_switch, ARRAY_SIZE(dmic3_switch),
 				wcd938x_tx_swr_ctrl, SND_SOC_DAPM_PRE_PMU |
 				SND_SOC_DAPM_POST_PMD),
-	SND_SOC_DAPM_MIXER_E("DMIC4_MIXER", SND_SOC_NOPM, DMIC4,
+	SND_SOC_DAPM_MIXER_E("DMIC4_MIXER", SND_SOC_NOPM, DMIC3,
 				0, dmic4_switch, ARRAY_SIZE(dmic4_switch),
 				wcd938x_tx_swr_ctrl, SND_SOC_DAPM_PRE_PMU |
 				SND_SOC_DAPM_POST_PMD),
-	SND_SOC_DAPM_MIXER_E("DMIC5_MIXER", SND_SOC_NOPM, DMIC5,
+	SND_SOC_DAPM_MIXER_E("DMIC5_MIXER", SND_SOC_NOPM, DMIC4,
 				0, dmic5_switch, ARRAY_SIZE(dmic5_switch),
 				wcd938x_tx_swr_ctrl, SND_SOC_DAPM_PRE_PMU |
 				SND_SOC_DAPM_POST_PMD),
-	SND_SOC_DAPM_MIXER_E("DMIC6_MIXER", SND_SOC_NOPM, DMIC6,
+	SND_SOC_DAPM_MIXER_E("DMIC6_MIXER", SND_SOC_NOPM, DMIC5,
 				0, dmic6_switch, ARRAY_SIZE(dmic6_switch),
 				wcd938x_tx_swr_ctrl, SND_SOC_DAPM_PRE_PMU |
 				SND_SOC_DAPM_POST_PMD),
-	SND_SOC_DAPM_MIXER_E("DMIC7_MIXER", SND_SOC_NOPM, DMIC7,
+	SND_SOC_DAPM_MIXER_E("DMIC7_MIXER", SND_SOC_NOPM, DMIC6,
 				0, dmic7_switch, ARRAY_SIZE(dmic7_switch),
 				wcd938x_tx_swr_ctrl, SND_SOC_DAPM_PRE_PMU |
 				SND_SOC_DAPM_POST_PMD),
-	SND_SOC_DAPM_MIXER_E("DMIC8_MIXER", SND_SOC_NOPM, DMIC8,
+	SND_SOC_DAPM_MIXER_E("DMIC8_MIXER", SND_SOC_NOPM, DMIC7,
 				0, dmic8_switch, ARRAY_SIZE(dmic8_switch),
 				wcd938x_tx_swr_ctrl, SND_SOC_DAPM_PRE_PMU |
 				SND_SOC_DAPM_POST_PMD),
@@ -3844,6 +3844,25 @@ done:
 	return rc;
 }
 
+#ifdef OPLUS_FEATURE_AUDIO_FTM
+static ssize_t wcd_codec_exist_read(struct file *p_file,
+			 char __user *puser_buf, size_t count, loff_t *p_offset)
+{
+	return 0;
+}
+
+static ssize_t wcd_codec_exist_write(struct file *p_file,
+			 const char __user *puser_buf,
+			 size_t count, loff_t *p_offset)
+{
+	return 0;
+}
+
+static const struct proc_ops wcd_codec_exist_operations = {
+	.proc_read = wcd_codec_exist_read,
+	.proc_write = wcd_codec_exist_write,
+};
+#endif /* OPLUS_FEATURE_AUDIO_FTM */
 static int wcd938x_soc_codec_probe(struct snd_soc_component *component)
 {
 	struct wcd938x_priv *wcd938x = snd_soc_component_get_drvdata(component);

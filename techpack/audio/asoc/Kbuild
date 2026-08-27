@@ -139,8 +139,6 @@ COMMON_INC :=	-I$(AUDIO_ROOT)/$(COMMON_DIR)
 
 ############ ASoC Drivers ############
 
-MACHINE_OBJS += msm-common.o
-
 # for SM8150 sound card driver
 ifdef CONFIG_SND_SOC_SM8150
 	MACHINE_OBJS += sm8150.o
@@ -268,7 +266,6 @@ CDEFINES +=	-DANI_LITTLE_BYTE_ENDIAN \
 		-DANI_OS_TYPE_ANDROID=6 \
 		-DPTT_SOCK_SVC_ENABLE \
 		-Wall\
-		-Werror\
 		-D__linux__
 
 KBUILD_CPPFLAGS += $(CDEFINES)
@@ -340,6 +337,3 @@ cpe_lsm_dlkm-y := $(CPE_LSM_OBJS)
 
 obj-$(CONFIG_SND_SOC_GVM_AUTO_SPF) += gvm_spf_machine_dlkm.o
 gvm_spf_machine_dlkm-y := $(SPF_MACHINE_OBJS)
-
-# inject some build related information
-DEFINES += -DBUILD_TIMESTAMP=\"$(shell date -u +'%Y-%m-%dT%H:%M:%SZ')\"

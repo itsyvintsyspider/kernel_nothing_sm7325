@@ -1234,8 +1234,8 @@ static irqreturn_t wcd_mbhc_btn_press_handler(int irq, void *data)
 	}
 	mbhc->buttons_pressed |= mask;
 	mbhc->mbhc_cb->lock_sleep(mbhc, true);
-	if (schedule_delayed_work(&mbhc->mbhc_btn_dwork,
-				msecs_to_jiffies(400)) == 0) {
+	if (queue_delayed_work(system_power_efficient_wq, &mbhc->mbhc_btn_dwork,
+			       msecs_to_jiffies(400)) == 0) {
 		WARN(1, "Button pressed twice without release event\n");
 		mbhc->mbhc_cb->lock_sleep(mbhc, false);
 	}
@@ -1710,8 +1710,9 @@ int wcd_mbhc_start(struct wcd_mbhc *mbhc, struct wcd_mbhc_config *mbhc_cfg)
 		}
 	} else {
 		if (!mbhc->mbhc_fw || !mbhc->mbhc_cal)
-			schedule_delayed_work(&mbhc->mbhc_firmware_dwork,
-				      usecs_to_jiffies(FW_READ_TIMEOUT));
+			queue_delayed_work(system_power_efficient_wq,
+					   &mbhc->mbhc_firmware_dwork,
+					   usecs_to_jiffies(FW_READ_TIMEOUT));
 		else
 			pr_err("%s: Skipping to read mbhc fw, 0x%pK %pK\n",
 				 __func__, mbhc->mbhc_fw, mbhc->mbhc_cal);
@@ -1832,7 +1833,8 @@ int wcd_mbhc_init(struct wcd_mbhc *mbhc, struct snd_soc_component *component,
 	mbhc->is_btn_press = false;
 	mbhc->component = component;
 	mbhc->intr_ids = mbhc_cdc_intr_ids;
-	mbhc->impedance_detect = impedance_det_en;
+//	mbhc->impedance_detect = impedance_det_en;
+	mbhc->impedance_detect = true;
 	mbhc->hphl_swh = hph_swh;
 	mbhc->gnd_swh = gnd_swh;
 	mbhc->micbias_enable = false;

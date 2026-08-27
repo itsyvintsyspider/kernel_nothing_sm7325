@@ -1053,6 +1053,13 @@ static const struct file_operations tfa98xx_dbgfs_rpc_fops = {
 	.llseek = default_llseek,
 };
 
+static const struct proc_ops tfa98xx_dbgfs_rpc_proc_ops = {
+	.proc_open = simple_open,
+	.proc_read = tfa98xx_dbgfs_rpc_read,
+	.proc_write = tfa98xx_dbgfs_rpc_send,
+	.proc_lseek = default_llseek,
+};
+
 #ifdef TFA98xx_calibrate
 static const struct file_operations tfa98xx_dbgfs_calib_fops = {
 	.owner = THIS_MODULE,
@@ -1101,7 +1108,7 @@ static void tfa98xx_debug_init(struct tfa98xx *tfa98xx, struct i2c_client *i2c)
 #else
 	tfa98xx->dbg_dir = proc_mkdir(name, NULL);
 	proc_create_data("rpc", S_IRUGO|S_IWUGO, tfa98xx->dbg_dir,
-		&tfa98xx_dbgfs_rpc_fops, i2c);
+		&tfa98xx_dbgfs_rpc_proc_ops, i2c);
 #endif
 }
 
