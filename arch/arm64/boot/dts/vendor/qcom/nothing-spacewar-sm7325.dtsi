@@ -2,3 +2,86 @@
 // This file is for Nothing Phone (1) "spacewar" (SM7325 "Yupik") only.
 // Camera, audio, and touch are provided by the stock Yupik IDP include above.
 // Keep this file for Spacewar-only overrides after live-device validation.
+
+&tlmm {
+	/* Redwood reference mapping; adapted for Spacewar DTS. */
+	awinic_gpio_reset: awinic_gpio_reset {
+		mux {
+			pins = "gpio35";
+			function = "gpio";
+		};
+		config {
+			pins = "gpio35";
+			drive-strength = <2>;
+			bias-disable;
+			output-low;
+		};
+	};
+
+	awinic_gpio_reset_output_high: awinic_gpio_reset_output_high {
+		mux {
+			pins = "gpio35";
+			function = "gpio";
+		};
+		config {
+			pins = "gpio35";
+			drive-strength = <2>;
+			bias-disable;
+			output-high;
+		};
+	};
+
+	awinic_gpio_int: awinic_gpio_int {
+		mux {
+			pins = "gpio18";
+			function = "gpio";
+		};
+		config {
+			pins = "gpio18";
+			drive-strength = <2>;
+			bias-pull-up;
+			input-enable;
+		};
+	};
+};
+
+&qupv3_se9_i2c {
+	#address-cells = <1>;
+	#size-cells = <0>;
+	clock-frequency = <400000>;
+	status = "ok";
+
+	haptic_hv@5a {
+	compatible = "awinic,haptic_hv";
+	reg = <0x5a>;
+	reset-gpio = <&tlmm 35 0x00>;
+	irq-gpio = <&tlmm 18 0x00>;
+
+	pinctrl-names = "awinic_reset_reset", "awinic_reset_active",
+				"awinic_interrupt_active";
+	pinctrl-0 = <&awinic_gpio_reset>;
+	pinctrl-1 = <&awinic_gpio_reset_output_high>;
+	pinctrl-2 = <&awinic_gpio_int>;
+
+	mode = <1>;
+	f0_pre = <1700>;
+
+	aw869x_f0_cali_percent = /bits/ 8 <7>;
+	aw869x_cont_drv_lev = /bits/ 8 <60>;
+	aw869x_cont_drv_lvl_ov = /bits/ 8 <60>;
+	aw869x_cont_td = <0xEF>;
+	aw869x_cont_zc_thr = <0x08F8>;
+	aw869x_cont_num_brk = /bits/ 8 <3>;
+	aw869x_f0_coeff = <260>;
+	aw869x_duration_time = /bits/ 8 <20 30 60>;
+	aw869x_tset = /bits/ 8 <0x1A>;
+	aw869x_r_spare = /bits/ 8 <0x68>;
+	aw869x_bstdbg = /bits/ 8 <0x30 0xEB 0xD4 0 0 0>;
+	aw869x_f0_trace_parameter = /bits/ 8 <0x09 0x03 0x01 0x1F>;
+	aw869x_bemf_config = /bits/ 8 <0 0x08 0x03 0xF8>;
+	aw869x_trig_config = /bits/ 8 <0 0 0 1 0 2 0 0
+				  0 0 0 1 0 2 0 0
+				  0 0 0 1 0 2 0 0>;
+	aw869x_bst_vol_default = <4375>;
+	};
+};
