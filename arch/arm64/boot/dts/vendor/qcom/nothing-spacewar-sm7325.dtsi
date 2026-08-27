@@ -8,6 +8,10 @@
 #include "nothing-spacewar-pinctrl.dtsi"
 #include "nothing-spacewar-audio-overlay.dtsi"
 
+&pm8350b_haptics {
+	status = "ok";
+};
+
 &qupv3_se13_spi {
 	status = "ok";
 	qcom,rt;
