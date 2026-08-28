@@ -1,3 +1,1 @@
-// Stock Yupik pinctrl is included by yupik-idp.dtsi.
-// Add Spacewar-specific groups here only after confirming them from the
-// device's live DT or the Nothing vendor source.
+// Yupik pinctrl is included by is included by yupik-qrd.dtsi.

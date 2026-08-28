@@ -5,6 +5,7 @@
 // FocalTech SPI node.
 
 #include "yupik-abra-common-overlay.dtsi"
+#include "nothing-spacewar-pinctrl.dtsi"
 #include "nothing-spacewar-audio-overlay.dtsi"
 
 &qupv3_se13_spi {
