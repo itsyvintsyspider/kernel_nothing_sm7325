@@ -113,9 +113,7 @@ static void cpu_limits_set_level(unsigned int cpu, unsigned int max_freq)
 		if (cpufreq_dev->id == cpu) {
 			for (level = 0; level <= cpufreq_dev->max_level; level++) {
 				if (max_freq >= cpufreq_dev->freq_table[level].frequency) {
-					level = level - 3;
-					if (level < 0)
-						level = 0;
+					level = (level >= 3) ? level - 3 : 0;
 					cpufreq_set_level(cpufreq_dev, level);
 					break;
 				}
@@ -255,14 +253,14 @@ static ssize_t thermal_board_sensor_temp_show(struct device *dev,
 					      struct device_attribute *attr,
 					      char *buf)
 {
-	return snprintf(buf, PAGE_SIZE, board_sensor_temp);
+	return snprintf(buf, PAGE_SIZE, "%s", board_sensor_temp);
 }
 
 static ssize_t thermal_board_sensor_temp_store(struct device *dev,
 					       struct device_attribute *attr,
 					       const char *buf, size_t len)
 {
-	snprintf(board_sensor_temp, PAGE_SIZE, buf);
+	snprintf(board_sensor_temp, sizeof(board_sensor_temp), "%s", buf);
 	return len;
 }
 
@@ -273,14 +271,14 @@ static ssize_t thermal_board_sensor_second_temp_show(struct device *dev,
 						     struct device_attribute *attr,
 						     char *buf)
 {
-	return snprintf(buf, PAGE_SIZE, board_sensor_second_temp);
+	return snprintf(buf, PAGE_SIZE, "%s", board_sensor_second_temp);
 }
 
 static ssize_t thermal_board_sensor_second_temp_store(struct device *dev,
 						      struct device_attribute *attr,
 						      const char *buf, size_t len)
 {
-	snprintf(board_sensor_second_temp, PAGE_SIZE, buf);
+	snprintf(board_sensor_second_temp, sizeof(board_sensor_second_temp), "%s", buf);
 	return len;
 }
 
@@ -291,14 +289,14 @@ static DEVICE_ATTR(board_sensor_second_temp, 0664,
 static ssize_t thermal_boost_show(struct device *dev,
 				  struct device_attribute *attr, char *buf)
 {
-	return snprintf(buf, PAGE_SIZE, boost);
+	return snprintf(buf, PAGE_SIZE, "%s", boost);
 }
 
 static ssize_t thermal_boost_store(struct device *dev,
 				   struct device_attribute *attr,
 				   const char *buf, size_t len)
 {
-	snprintf(boost, PAGE_SIZE, buf);
+	snprintf(boost, sizeof(boost), "%s", buf);
 	return len;
 }
 
@@ -733,7 +731,7 @@ static int __init nt_thermal_interface_init(void)
 	ret = power_supply_reg_notifier(&usb_state.psy_nb);
 	if (ret < 0)
 		pr_err("%s: usb online notifier registration failed err: %d\n",
-		       ret);
+		       __func__, ret);
 
 	return 0;
 }

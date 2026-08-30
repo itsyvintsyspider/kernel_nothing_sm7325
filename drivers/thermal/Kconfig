@@ -448,8 +448,8 @@ config SPRD_THERMAL
 	  framework.
 
 config NT_THERMAL_INTERFACE
-	tristate "Nothing thermal control interface"
-	depends on THERMAL
+	bool "Nothing thermal control interface"
+	depends on THERMAL && CPU_FREQ && POWER_SUPPLY
 	help
 	  Support for the Nothing thermal control interface. Provides the
 	  vendor thermal-engine sysfs ABI (thermal_message class device:
