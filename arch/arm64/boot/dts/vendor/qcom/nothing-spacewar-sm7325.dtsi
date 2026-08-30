@@ -44,7 +44,7 @@
 
 &soc {
 	nt-thermal-interface {
-		board-sensor = "quiet-therm-step";
+		board-sensor = "spacewar-board-sensor";
 		qcom,display-panels = <&dsi_rm692e5_visionox_amoled_120hz_cmd
 					&dsi_r66451_amoled_144hz_video_cphy>;
 	};
