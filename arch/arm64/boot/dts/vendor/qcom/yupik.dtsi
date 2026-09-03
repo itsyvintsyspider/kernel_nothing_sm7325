@@ -5274,6 +5274,7 @@
 	};
 
 	qcom,ipa_fws {
+		status = "disabled";
 		compatible = "qcom,pil-tz-generic";
 		qcom,pas-id = <0xf>;
 		qcom,firmware-name = "yupik_ipa_fws";
