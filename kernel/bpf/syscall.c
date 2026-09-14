@@ -972,10 +972,10 @@ static struct bpf_map *__bpf_map_inc_not_zero(struct bpf_map *map, bool uref)
 	return map;
 }
 
-struct bpf_map *bpf_map_inc_not_zero(struct bpf_map *map)
+struct bpf_map *bpf_map_inc_not_zero(struct bpf_map *map, bool uref)
 {
 	spin_lock_bh(&map_idr_lock);
-	map = __bpf_map_inc_not_zero(map, false);
+	map = __bpf_map_inc_not_zero(map, uref);
 	spin_unlock_bh(&map_idr_lock);
 
 	return map;
