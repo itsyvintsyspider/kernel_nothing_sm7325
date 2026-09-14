@@ -340,6 +340,15 @@ static inline struct net *read_pnet(const possible_net_t *pnet)
 #endif
 }
 
+static inline struct net *read_pnet_rcu(const possible_net_t *pnet)
+{
+#ifdef CONFIG_NET_NS
+	return rcu_dereference(pnet->net);
+#else
+	return &init_net;
+#endif
+}
+
 /* Protected by net_rwsem */
 #define for_each_net(VAR)				\
 	list_for_each_entry(VAR, &net_namespace_list, list)
