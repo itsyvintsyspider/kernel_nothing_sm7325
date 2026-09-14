@@ -22,6 +22,7 @@
 #ifdef CONFIG_AUDIO_QGKI
 #include <linux/async.h>
 #endif
+#include <linux/android_kabi.h>
 #include <sound/core.h>
 #include <sound/pcm.h>
 #include <sound/compress_driver.h>
@@ -1136,6 +1137,11 @@ struct snd_soc_card {
 	u32 pop_time;
 
 	void *drvdata;
+
+	ANDROID_KABI_RESERVE(1);
+	ANDROID_KABI_RESERVE(2);
+	ANDROID_KABI_RESERVE(3);
+	ANDROID_KABI_RESERVE(4);
 };
 #define for_each_card_prelinks(card, i, link)				\
 	for ((i) = 0;							\
@@ -1204,6 +1210,8 @@ struct snd_soc_pcm_runtime {
 	unsigned int dev_registered:1;
 	unsigned int pop_wait:1;
 	unsigned int fe_compr:1; /* for Dynamic PCM */
+
+	ANDROID_KABI_RESERVE(1);
 };
 #define for_each_rtd_codec_dai(rtd, i, dai)\
 	for ((i) = 0;						       \
@@ -1222,6 +1230,8 @@ struct soc_mixer_control {
 	unsigned int invert:1;
 	unsigned int autodisable:1;
 	struct snd_soc_dobj dobj;
+
+	ANDROID_KABI_RESERVE(1);
 };
 
 struct soc_bytes {
@@ -1263,6 +1273,8 @@ struct soc_enum {
 	const unsigned int *values;
 	unsigned int autodisable:1;
 	struct snd_soc_dobj dobj;
+
+	ANDROID_KABI_RESERVE(1);
 };
 
 /* device driver data */

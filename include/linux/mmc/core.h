@@ -165,17 +165,17 @@ struct mmc_request {
 	bool			cap_cmd_during_tfr;
 
 	int			tag;
+
 #ifdef CONFIG_MMC_CRYPTO
-	int crypto_key_slot;
-	u64 data_unit_num;
-	const struct blk_crypto_key *crypto_key;
+	const struct bio_crypt_ctx *crypto_ctx;
+	int			crypto_key_slot;
 #endif
 };
 
 #ifdef CONFIG_MMC_CRYPTO
 static inline bool mmc_request_crypto_enabled(const struct mmc_request *mrq)
 {
-	return mrq->crypto_key != NULL;
+	return mrq->crypto_ctx != NULL;
 }
 #else
 static inline bool mmc_request_crypto_enabled(const struct mmc_request *mrq)

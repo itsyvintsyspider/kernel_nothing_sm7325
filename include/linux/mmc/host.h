@@ -19,6 +19,8 @@
 #include <linux/mmc/pm.h>
 #include <linux/dma-direction.h>
 #include <linux/ipc_logging.h>
+#include <linux/keyslot-manager.h>
+#include <linux/android_kabi.h>
 
 struct mmc_ios {
 	unsigned int	clock;			/* clock rate */
@@ -204,6 +206,9 @@ struct mmc_host_ops {
 #if defined(CONFIG_SDC_QTI)
 	int     (*notify_load)(struct mmc_host *host, enum mmc_load);
 #endif
+
+	ANDROID_KABI_RESERVE(1);
+	ANDROID_KABI_RESERVE(2);
 };
 
 struct mmc_cqe_ops {
@@ -257,6 +262,9 @@ struct mmc_cqe_ops {
 	void	(*cqe_crypto_update_queue)(struct mmc_host *host,
 					struct request_queue *queue);
 #endif
+
+	ANDROID_KABI_RESERVE(1);
+	ANDROID_KABI_RESERVE(2);
 };
 
 struct mmc_async_req {
@@ -479,7 +487,11 @@ struct mmc_host {
 #define MMC_CAP2_CQE_DCMD	(1 << 24)	/* CQE can issue a direct command */
 #define MMC_CAP2_AVOID_3_3V	(1 << 25)	/* Host must negotiate down from 3.3V */
 #define MMC_CAP2_MERGE_CAPABLE	(1 << 26)	/* Host can merge a segment over the segment size */
+#ifdef CONFIG_MMC_CRYPTO
 #define MMC_CAP2_CRYPTO		(1 << 27)	/* Host supports inline encryption */
+#else
+#define MMC_CAP2_CRYPTO		0
+#endif
 #if defined(CONFIG_SDC_QTI)
 #define MMC_CAP2_CLK_SCALE      (1 << 28)       /* Allow dynamic clk scaling */
 #endif
@@ -588,10 +600,10 @@ struct mmc_host {
 	int			cqe_qdepth;
 	bool			cqe_enabled;
 	bool			cqe_on;
+	/* Inline encryption support */
 #ifdef CONFIG_MMC_CRYPTO
-	struct keyslot_manager	*ksm;
-	void *crypto_DO_NOT_USE[7];
-#endif /* CONFIG_MMC_CRYPTO */
+	struct blk_keyslot_manager ksm;
+#endif
 
 	/* Host Software Queue support */
 	bool			hsq_enabled;
@@ -603,6 +615,9 @@ struct mmc_host {
 #if defined(CONFIG_SDC_QTI)
 	atomic_t active_reqs;
 #endif
+	ANDROID_KABI_RESERVE(1);
+	ANDROID_KABI_RESERVE(2);
+
 	unsigned long		private[0] ____cacheline_aligned;
 };
 

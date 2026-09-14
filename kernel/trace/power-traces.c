@@ -27,3 +27,4 @@ EXPORT_TRACEPOINT_SYMBOL(bw_hwmon_meas);
 EXPORT_TRACEPOINT_SYMBOL(bw_hwmon_debug);
 EXPORT_TRACEPOINT_SYMBOL_GPL(device_pm_callback_start);
 EXPORT_TRACEPOINT_SYMBOL_GPL(device_pm_callback_end);
+EXPORT_TRACEPOINT_SYMBOL_GPL(clock_set_rate);

@@ -9,6 +9,10 @@ struct ip_ct_sctp {
 	enum sctp_conntrack state;
 
 	__be32 vtag[IP_CT_DIR_MAX];
+	u8 last_dir;
+	u8 flags;
 };
+
+#define SCTP_FLAG_HEARTBEAT_VTAG_FAILED	1
 
 #endif /* _NF_CONNTRACK_SCTP_H */

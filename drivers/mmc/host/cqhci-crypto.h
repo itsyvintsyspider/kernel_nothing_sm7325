@@ -13,6 +13,41 @@
 #include <linux/module.h>
 #include "cqhci.h"
 
+#ifdef CONFIG_MMC_CRYPTO
+
+int cqhci_crypto_init(struct cqhci_host *host);
+
+/*
+ * Returns the crypto bits that should be set in bits 64-127 of the
+ * task descriptor.
+ */
+static inline u64 cqhci_crypto_prep_task_desc(struct mmc_request *mrq)
+{
+	if (!mrq->crypto_ctx)
+		return 0;
+
+	/* We set max_dun_bytes_supported=4, so all DUNs should be 32-bit. */
+	WARN_ON_ONCE(mrq->crypto_ctx->bc_dun[0] > U32_MAX);
+
+	return CQHCI_CRYPTO_ENABLE_BIT |
+	       CQHCI_CRYPTO_KEYSLOT(mrq->crypto_key_slot) |
+	       mrq->crypto_ctx->bc_dun[0];
+}
+
+#else /* CONFIG_MMC_CRYPTO */
+
+static inline int cqhci_crypto_init(struct cqhci_host *host)
+{
+	return 0;
+}
+
+static inline u64 cqhci_crypto_prep_task_desc(struct mmc_request *mrq)
+{
+	return 0;
+}
+
+#endif /* !CONFIG_MMC_CRYPTO */
+
 static inline int cqhci_num_keyslots(struct cqhci_host *host)
 {
 	return host->crypto_capabilities.config_count + 1;
@@ -48,7 +83,7 @@ void cqhci_crypto_enable_spec(struct cqhci_host *host);
 void cqhci_crypto_disable_spec(struct cqhci_host *host);
 
 int cqhci_host_init_crypto_spec(struct cqhci_host *host,
-				const struct keyslot_mgmt_ll_ops *ksm_ops);
+				const struct blk_ksm_ll_ops *ksm_ops);
 
 void cqhci_crypto_setup_rq_keyslot_manager_spec(struct cqhci_host *host,
 						struct request_queue *q);
@@ -151,5 +186,3 @@ int cqhci_crypto_cap_find(void *host_p,  enum blk_crypto_mode_num crypto_mode,
 			  unsigned int data_unit_size);
 
 #endif /* _CQHCI_CRYPTO_H */
-
-

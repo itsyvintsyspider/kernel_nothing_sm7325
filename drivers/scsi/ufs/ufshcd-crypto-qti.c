@@ -120,11 +120,11 @@ void ufshcd_crypto_qti_disable(struct ufs_hba *hba)
 }
 
 
-static int ufshcd_crypto_qti_keyslot_program(struct keyslot_manager *ksm,
+static int ufshcd_crypto_qti_keyslot_program(struct blk_keyslot_manager *ksm,
 					     const struct blk_crypto_key *key,
 					     unsigned int slot)
 {
-	struct ufs_hba *hba = keyslot_manager_private(ksm);
+	struct ufs_hba *hba = container_of(ksm, struct ufs_hba, ksm);
 	int err = 0;
 	u8 data_unit_mask;
 	int crypto_alg_id;
@@ -164,12 +164,12 @@ out:
 	return err;
 }
 
-static int ufshcd_crypto_qti_keyslot_evict(struct keyslot_manager *ksm,
+static int ufshcd_crypto_qti_keyslot_evict(struct blk_keyslot_manager *ksm,
 					   const struct blk_crypto_key *key,
 					   unsigned int slot)
 {
 	int err = 0;
-	struct ufs_hba *hba = keyslot_manager_private(ksm);
+	struct ufs_hba *hba = container_of(ksm, struct ufs_hba, ksm);
 
 	if (!ufshcd_is_crypto_enabled(hba) ||
 	    !ufshcd_keyslot_valid(hba, slot))
@@ -197,14 +197,14 @@ static int ufshcd_crypto_qti_keyslot_evict(struct keyslot_manager *ksm,
 	return err;
 }
 
-static int ufshcd_crypto_qti_derive_raw_secret(struct keyslot_manager *ksm,
+static int ufshcd_crypto_qti_derive_raw_secret(struct blk_keyslot_manager *ksm,
 					       const u8 *wrapped_key,
 					       unsigned int wrapped_key_size,
 					       u8 *secret,
 					       unsigned int secret_size)
 {
 	int err = 0;
-	struct ufs_hba *hba = keyslot_manager_private(ksm);
+	struct ufs_hba *hba = container_of(ksm, struct ufs_hba, ksm);
 
 	pm_runtime_get_sync(hba->dev);
 	err = ufshcd_hold(hba, false);
@@ -223,7 +223,7 @@ static int ufshcd_crypto_qti_derive_raw_secret(struct keyslot_manager *ksm,
 	return err;
 }
 
-static const struct keyslot_mgmt_ll_ops ufshcd_crypto_qti_ksm_ops = {
+static const struct blk_ksm_ll_ops ufshcd_crypto_qti_ksm_ops = {
 	.keyslot_program	= ufshcd_crypto_qti_keyslot_program,
 	.keyslot_evict		= ufshcd_crypto_qti_keyslot_evict,
 	.derive_raw_secret	= ufshcd_crypto_qti_derive_raw_secret,
@@ -244,7 +244,7 @@ static enum blk_crypto_mode_num ufshcd_blk_crypto_qti_mode_num_for_alg_dusize(
 }
 
 static int ufshcd_hba_init_crypto_qti_spec(struct ufs_hba *hba,
-				    const struct keyslot_mgmt_ll_ops *ksm_ops)
+				    const struct blk_ksm_ll_ops *ksm_ops)
 {
 	int cap_idx = 0;
 	int err = 0;
@@ -304,14 +304,16 @@ static int ufshcd_hba_init_crypto_qti_spec(struct ufs_hba *hba,
 	if (num_slots > 0)
 		--num_slots;
 #endif
-	hba->ksm = keyslot_manager_create(hba->dev, num_slots,
-				ksm_ops, BLK_CRYPTO_FEATURE_WRAPPED_KEYS,
-				crypto_modes_supported, hba);
-
-	if (!hba->ksm) {
-		err = -ENOMEM;
+	err = devm_blk_ksm_init(hba->dev, &hba->ksm, num_slots);
+	if (err)
 		goto out;
-	}
+
+	hba->ksm.ksm_ll_ops = *ksm_ops;
+	hba->ksm.features = BLK_CRYPTO_FEATURE_WRAPPED_KEYS;
+	hba->ksm.dev = hba->dev;
+	memcpy(hba->ksm.crypto_modes_supported, crypto_modes_supported,
+	       sizeof(crypto_modes_supported));
+
 	pr_debug("%s: keyslot manager created\n", __func__);
 
 	return 0;
@@ -323,7 +325,7 @@ out:
 }
 
 int ufshcd_crypto_qti_init_crypto(struct ufs_hba *hba,
-				  const struct keyslot_mgmt_ll_ops *ksm_ops)
+				  const struct blk_ksm_ll_ops *ksm_ops)
 {
 	int err = 0;
 	struct platform_device *pdev = to_platform_device(hba->dev);

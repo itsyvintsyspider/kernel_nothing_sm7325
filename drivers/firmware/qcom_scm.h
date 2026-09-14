@@ -47,6 +47,35 @@ extern void __qcom_scm_phy_update_scm_level_shifter(struct device *dev, u32 val)
 #define QCOM_SCM_PIL_PAS_SHUTDOWN		0x06
 #define QCOM_SCM_PIL_PAS_IS_SUPPORTED		0x07
 #define QCOM_SCM_PIL_PAS_MSS_RESET		0x0a
+
+/* Newer-generation aliases for the same SCM command IDs above, used by
+ * callers ported from android12-5.4-lts.
+ */
+#define QCOM_SCM_PAS_INIT_IMAGE_CMD		QCOM_SCM_PIL_PAS_INIT_IMAGE
+#define QCOM_SCM_PAS_MEM_SETUP_CMD		QCOM_SCM_PIL_PAS_MEM_SETUP
+#define QCOM_SCM_PAS_AUTH_AND_RESET_CMD		QCOM_SCM_PIL_PAS_AUTH_AND_RESET
+#define QCOM_SCM_PAS_SHUTDOWN_CMD		QCOM_SCM_PIL_PAS_SHUTDOWN
+#define QCOM_SCM_PAS_IS_SUPPORTED_CMD		QCOM_SCM_PIL_PAS_IS_SUPPORTED
+#define QCOM_SCM_PAS_MSS_RESET			QCOM_SCM_PIL_PAS_MSS_RESET
+
+#define QCOM_SCM_SVC_IO			0x5
+#define QCOM_SCM_IO_READ		0x1
+#define QCOM_SCM_IO_WRITE		0x2
+extern int __qcom_scm_io_readl(struct device *dev, phys_addr_t addr, unsigned int *val);
+extern int __qcom_scm_io_writel(struct device *dev, phys_addr_t addr, unsigned int val);
+
+#define QCOM_SCM_SVC_INFO		0x6
+#define QCOM_IS_CALL_AVAIL_CMD		0x1
+extern int __qcom_scm_is_call_available(struct device *dev, u32 svc_id,
+		u32 cmd_id);
+
+#define QCOM_SCM_SVC_HDCP		0x11
+#define QCOM_SCM_CMD_HDCP		0x01
+extern int __qcom_scm_hdcp_req(struct device *dev,
+		struct qcom_scm_hdcp_req *req, u32 req_cnt, u32 *resp);
+
+extern void __qcom_scm_init(void);
+
 extern bool __qcom_scm_pas_supported(struct device *dev, u32 peripheral);
 extern int  __qcom_scm_pas_init_image(struct device *dev, u32 peripheral,
 		dma_addr_t metadata_phys);
@@ -76,8 +105,6 @@ extern int __qcom_scm_io_reset(struct device *dev);
 #define QCOM_SCM_SVC_INFO			0x06
 #define QCOM_SCM_INFO_IS_CALL_AVAIL		0x01
 #define QCOM_SCM_INFO_GET_FEAT_VERSION_CMD	0x03
-extern int __qcom_scm_is_call_available(struct device *dev, u32 svc_id,
-		u32 cmd_id);
 extern int __qcom_scm_get_feat_version(struct device *dev, u64 feat_id,
 					u64 *version);
 #define QCOM_SCM_TZ_DBG_ETM_FEAT_ID		0x08
@@ -315,6 +342,14 @@ extern int __init scm_mem_protection_init_do(struct device *dev);
 #define TZ_SVC_BW_PROF_ID		0x07 /* ddr profiler */
 extern int __qcom_scm_ddrbw_profiler(struct device *dev, phys_addr_t in_buf,
 	size_t in_buf_size, phys_addr_t out_buf, size_t out_buf_size);
+#define QCOM_SCM_SVC_ES			0x10	/* Enterprise Security */
+#define QCOM_SCM_ES_INVALIDATE_ICE_KEY	0x03
+#define QCOM_SCM_ES_CONFIG_SET_ICE_KEY	0x04
+extern int __qcom_scm_ice_invalidate_key(struct device *dev, u32 index);
+extern int __qcom_scm_ice_set_key(struct device *dev, u32 index,
+				  dma_addr_t key_phys,
+				  u32 key_size, enum qcom_scm_ice_cipher cipher,
+				  u32 data_unit_size);
 
 /* common error codes */
 #define QCOM_SCM_V2_EBUSY	-12

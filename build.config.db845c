@@ -9,10 +9,15 @@ POST_DEFCONFIG_CMDS="rm ${ROOT_DIR}/${KERNEL_DIR}/arch/arm64/configs/${DEFCONFIG
 
 DTC_FLAGS="${DTC_FLAGS} -@"
 
-FILES="
+MAKE_GOALS="${MAKE_GOALS}
+qcom/sdm845-db845c.dtb
+Image.gz
+"
+
+FILES="${FILES}
 arch/arm64/boot/Image.gz
 arch/arm64/boot/dts/qcom/sdm845-db845c.dtb
 vmlinux
-System.map
 "
 KMI_SYMBOL_LIST=android/abi_gki_aarch64_db845c
+GKI_MODULES_LIST=android/gki_aarch64_modules

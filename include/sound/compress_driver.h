@@ -12,6 +12,7 @@
 
 #include <linux/types.h>
 #include <linux/sched.h>
+#include <linux/android_kabi.h>
 #include <sound/core.h>
 #include <sound/compress_offload.h>
 #include <sound/asound.h>
@@ -47,6 +48,8 @@ struct snd_compr_runtime {
 	u64 total_bytes_transferred;
 	wait_queue_head_t sleep;
 	void *private_data;
+
+	ANDROID_KABI_RESERVE(1);
 };
 
 /**
@@ -74,6 +77,8 @@ struct snd_compr_stream {
 #ifdef CONFIG_AUDIO_QGKI
 	struct snd_soc_pcm_runtime *be;
 #endif
+
+	ANDROID_KABI_RESERVE(1);
 };
 
 /**
@@ -128,6 +133,8 @@ struct snd_compr_ops {
 			struct snd_compr_caps *caps);
 	int (*get_codec_caps) (struct snd_compr_stream *stream,
 			struct snd_compr_codec_caps *codec);
+
+	ANDROID_KABI_RESERVE(1);
 };
 
 /**
@@ -156,6 +163,7 @@ struct snd_compr {
 	struct snd_info_entry *proc_root;
 	struct snd_info_entry *proc_info_entry;
 #endif
+	ANDROID_KABI_RESERVE(1);
 };
 
 /* compress device register APIs */

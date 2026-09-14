@@ -390,8 +390,7 @@ struct buffer_head *udf_expand_dir_adinicb(struct inode *inode,
 		dfibh.eoffset += (sfibh.eoffset - sfibh.soffset);
 		dfi = (struct fileIdentDesc *)(dbh->b_data + dfibh.soffset);
 		if (udf_write_fi(inode, sfi, dfi, &dfibh, sfi->impUse,
-				 sfi->fileIdent +
-					le16_to_cpu(sfi->lengthOfImpUse))) {
+				 udf_get_fi_ident(sfi))) {
 			iinfo->i_alloc_type = ICBTAG_FLAG_AD_IN_ICB;
 			brelse(dbh);
 			return NULL;
@@ -2201,6 +2200,9 @@ int8_t udf_current_aext(struct inode *inode, struct extent_position *epos,
 		ptr = epos->bh->b_data + epos->offset;
 		if (check_add_overflow(sizeof(struct allocExtDesc),
 				le32_to_cpu(header->lengthAllocDescs), &alen))
+			return -1;
+
+		if (alen > epos->bh->b_size)
 			return -1;
 	}
 
