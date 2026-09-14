@@ -165,6 +165,13 @@ static inline void page_pool_put_page(struct page_pool *pool,
 	__page_pool_put_page(pool, page, allow_direct);
 #endif
 }
+
+/* Same as above but will try to sync the entire area pool->max_len */
+static inline void page_pool_put_full_page(struct page_pool *pool,
+					   struct page *page, bool allow_direct)
+{
+	page_pool_put_page(pool, page, allow_direct);
+}
 /* Very limited use-cases allow recycle direct */
 static inline void page_pool_recycle_direct(struct page_pool *pool,
 					    struct page *page)

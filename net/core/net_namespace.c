@@ -250,11 +250,17 @@ static int __peernet2id_alloc(struct net *net, struct net *peer, bool *alloc)
 }
 
 /* Must be called from RCU-critical section or with nsid_lock held */
-static int __peernet2id(struct net *net, struct net *peer)
+static int __peernet2id(const struct net *net, struct net *peer)
 {
-	bool no = false;
+	int id = idr_for_each(&net->netns_ids, net_eq_idr, peer);
 
-	return __peernet2id_alloc(net, peer, &no);
+	/* Magic value for id 0. */
+	if (id == NET_ID_ZERO)
+		return 0;
+	if (id > 0)
+		return id;
+
+	return NETNSA_NSID_NOT_ASSIGNED;
 }
 
 static void rtnl_net_notifyid(struct net *net, int cmd, int id, u32 portid,
@@ -289,7 +295,7 @@ int peernet2id_alloc(struct net *net, struct net *peer, gfp_t gfp)
 EXPORT_SYMBOL_GPL(peernet2id_alloc);
 
 /* This function returns, if assigned, the id of a peer netns. */
-int peernet2id(struct net *net, struct net *peer)
+int peernet2id(const struct net *net, struct net *peer)
 {
 	int id;
 
@@ -304,12 +310,12 @@ EXPORT_SYMBOL(peernet2id);
 /* This function returns true is the peer netns has an id assigned into the
  * current netns.
  */
-bool peernet_has_id(struct net *net, struct net *peer)
+bool peernet_has_id(const struct net *net, struct net *peer)
 {
 	return peernet2id(net, peer) >= 0;
 }
 
-struct net *get_net_ns_by_id(struct net *net, int id)
+struct net *get_net_ns_by_id(const struct net *net, int id)
 {
 	struct net *peer;
 
