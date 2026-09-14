@@ -66,6 +66,7 @@ struct mpls_dev;
 /* UDP Tunnel offloads */
 struct udp_tunnel_info;
 struct bpf_prog;
+struct xdp_dev_bulk_queue;
 struct xdp_buff;
 
 void netdev_set_default_ethtool_ops(struct net_device *dev,
@@ -2016,6 +2017,9 @@ struct net_device {
 #endif
 	unsigned int		tx_queue_len;
 	spinlock_t		tx_global_lock;
+
+	struct xdp_dev_bulk_queue __percpu *xdp_bulkq;
+
 	int			watchdog_timeo;
 
 #ifdef CONFIG_XPS
