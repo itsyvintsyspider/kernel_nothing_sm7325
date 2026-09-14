@@ -579,7 +579,8 @@ static ssize_t proc_sys_call_handler(struct file *filp, void __user *buf,
 	struct inode *inode = file_inode(filp);
 	struct ctl_table_header *head = grab_header(inode);
 	struct ctl_table *table = PROC_I(inode)->sysctl_entry;
-	void *new_buf = NULL;
+	mm_segment_t old_fs;
+	char *kbuf;
 	ssize_t error;
 
 	if (IS_ERR(head))
@@ -598,27 +599,43 @@ static ssize_t proc_sys_call_handler(struct file *filp, void __user *buf,
 	if (!table->proc_handler)
 		goto out;
 
-	error = BPF_CGROUP_RUN_PROG_SYSCTL(head, table, write, buf, &count,
-					   ppos, &new_buf);
-	if (error)
+	/* BPF_CGROUP_RUN_PROG_SYSCTL() below may kfree() and replace the
+	 * buffer, so it must always point at kernel, not user, memory.
+	 */
+	error = -ENOMEM;
+	kbuf = kzalloc(count + 1, GFP_KERNEL);
+	if (!kbuf)
 		goto out;
 
-	/* careful: calling conventions are nasty here */
-	if (new_buf) {
-		mm_segment_t old_fs;
-
-		old_fs = get_fs();
-		set_fs(KERNEL_DS);
-		error = table->proc_handler(table, write, (void __user *)new_buf,
-					    &count, ppos);
-		set_fs(old_fs);
-		kfree(new_buf);
-	} else {
-		error = table->proc_handler(table, write, buf, &count, ppos);
+	if (write) {
+		error = -EFAULT;
+		if (copy_from_user(kbuf, buf, count))
+			goto out_free_buf;
 	}
 
-	if (!error)
-		error = count;
+	error = BPF_CGROUP_RUN_PROG_SYSCTL(head, table, write, &kbuf, &count,
+					   ppos);
+	if (error)
+		goto out_free_buf;
+
+	/* careful: calling conventions are nasty here */
+	old_fs = get_fs();
+	set_fs(KERNEL_DS);
+	error = table->proc_handler(table, write, (void __user *)kbuf,
+				    &count, ppos);
+	set_fs(old_fs);
+	if (error)
+		goto out_free_buf;
+
+	if (!write) {
+		error = -EFAULT;
+		if (copy_to_user(buf, kbuf, count))
+			goto out_free_buf;
+	}
+
+	error = count;
+out_free_buf:
+	kfree(kbuf);
 out:
 	sysctl_head_finish(head);
 
@@ -1757,7 +1774,7 @@ int __init proc_sys_init(void)
 
 	proc_sys_root = proc_mkdir("sys", NULL);
 	proc_sys_root->proc_iops = &proc_sys_dir_operations;
-	proc_sys_root->proc_fops = &proc_sys_dir_file_operations;
+	proc_sys_root->proc_dir_ops = &proc_sys_dir_file_operations;
 	proc_sys_root->nlink = 0;
 
 	return sysctl_init();
