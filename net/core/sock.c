@@ -648,6 +648,20 @@ out:
 	return ret;
 }
 
+int sock_bindtoindex(struct sock *sk, int ifindex, bool lock_sk)
+{
+	int ret;
+
+	if (lock_sk)
+		lock_sock(sk);
+	ret = sock_setbindtodevice_locked(sk, ifindex);
+	if (lock_sk)
+		release_sock(sk);
+
+	return ret;
+}
+EXPORT_SYMBOL(sock_bindtoindex);
+
 static int sock_getbindtodevice(struct sock *sk, char __user *optval,
 				int __user *optlen, int len)
 {
@@ -688,13 +702,14 @@ out:
 	return ret;
 }
 
-static inline void sock_valbool_flag(struct sock *sk, int bit, int valbool)
+void sock_valbool_flag(struct sock *sk, int bit, int valbool)
 {
 	if (valbool)
 		sock_set_flag(sk, bit);
 	else
 		sock_reset_flag(sk, bit);
 }
+EXPORT_SYMBOL(sock_valbool_flag);
 
 bool sk_mc_loop(struct sock *sk)
 {
@@ -2087,6 +2102,18 @@ void sock_efree(struct sk_buff *skb)
 }
 EXPORT_SYMBOL(sock_efree);
 
+/* Buffer destructor for prefetch/receive path where reference count may
+ * not be held, e.g. for listen sockets.
+ */
+#ifdef CONFIG_INET
+void sock_pfree(struct sk_buff *skb)
+{
+	if (sk_is_refcounted(skb->sk))
+		sock_gen_put(skb->sk);
+}
+EXPORT_SYMBOL(sock_pfree);
+#endif /* CONFIG_INET */
+
 kuid_t sock_i_uid(struct sock *sk)
 {
 	kuid_t uid;
@@ -2847,7 +2874,7 @@ static void sock_def_error_report(struct sock *sk)
 	rcu_read_unlock();
 }
 
-static void sock_def_readable(struct sock *sk)
+void sock_def_readable(struct sock *sk)
 {
 	struct socket_wq *wq;
 
@@ -2859,6 +2886,7 @@ static void sock_def_readable(struct sock *sk)
 	sk_wake_async(sk, SOCK_WAKE_WAITD, POLL_IN);
 	rcu_read_unlock();
 }
+EXPORT_SYMBOL(sock_def_readable);
 
 static void sock_def_write_space(struct sock *sk)
 {

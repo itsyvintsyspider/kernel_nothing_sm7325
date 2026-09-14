@@ -3862,7 +3862,7 @@ int dev_queue_xmit_accel(struct sk_buff *skb, struct net_device *sb_dev)
 }
 EXPORT_SYMBOL(dev_queue_xmit_accel);
 
-int dev_direct_xmit(struct sk_buff *skb, u16 queue_id)
+int __dev_direct_xmit(struct sk_buff *skb, u16 queue_id)
 {
 	struct net_device *dev = skb->dev;
 	struct sk_buff *orig_skb = skb;
@@ -3900,6 +3900,12 @@ drop:
 	atomic_long_inc(&dev->tx_dropped);
 	kfree_skb_list(skb);
 	return NET_XMIT_DROP;
+}
+EXPORT_SYMBOL(__dev_direct_xmit);
+
+int dev_direct_xmit(struct sk_buff *skb, u16 queue_id)
+{
+	return __dev_direct_xmit(skb, queue_id);
 }
 EXPORT_SYMBOL(dev_direct_xmit);
 

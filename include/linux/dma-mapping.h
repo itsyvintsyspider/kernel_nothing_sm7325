@@ -645,6 +645,17 @@ static inline unsigned long dma_get_merge_boundary(struct device *dev)
 }
 #endif /* CONFIG_HAS_DMA */
 
+/*
+ * This tree predates the direct-mapping internals that let dma_need_sync()
+ * give a precise answer per dma_addr_t. Conservatively report "needs sync"
+ * so callers (currently just AF_XDP zero-copy) always do the safe thing;
+ * worst case is an extra cache sync, never a missed one.
+ */
+static inline bool dma_need_sync(struct device *dev, dma_addr_t dma_addr)
+{
+	return true;
+}
+
 static inline dma_addr_t dma_map_single_attrs(struct device *dev, void *ptr,
 		size_t size, enum dma_data_direction dir, unsigned long attrs)
 {

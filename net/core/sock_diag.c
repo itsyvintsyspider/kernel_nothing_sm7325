@@ -32,6 +32,16 @@ u64 sock_gen_cookie(struct sock *sk)
 		atomic64_cmpxchg(&sk->sk_cookie, 0, res);
 	}
 }
+EXPORT_SYMBOL_GPL(sock_gen_cookie);
+
+/* BPF helpers call this directly from contexts where taking the usual
+ * sock_diag locking would be unsafe; the generator itself is already
+ * lock-free, so this is just an alias.
+ */
+u64 __sock_gen_cookie(struct sock *sk)
+{
+	return sock_gen_cookie(sk);
+}
 
 int sock_diag_check_cookie(struct sock *sk, const __u32 *cookie)
 {

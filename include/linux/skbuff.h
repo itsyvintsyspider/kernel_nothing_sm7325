@@ -2609,6 +2609,11 @@ static inline int skb_mac_header_was_set(const struct sk_buff *skb)
 	return skb->mac_header != (typeof(skb->mac_header))~0U;
 }
 
+static inline void skb_unset_mac_header(struct sk_buff *skb)
+{
+	skb->mac_header = (typeof(skb->mac_header))~0U;
+}
+
 static inline void skb_reset_mac_header(struct sk_buff *skb)
 {
 	skb->mac_header = skb->data - skb->head;
@@ -3999,6 +4004,14 @@ static inline __sum16 skb_checksum_complete(struct sk_buff *skb)
 {
 	return skb_csum_unnecessary(skb) ?
 	       0 : __skb_checksum_complete(skb);
+}
+
+static inline void __skb_reset_checksum_unnecessary(struct sk_buff *skb)
+{
+	if (skb->ip_summed == CHECKSUM_UNNECESSARY) {
+		skb->ip_summed = CHECKSUM_NONE;
+		skb->csum_level = 0;
+	}
 }
 
 static inline void __skb_decr_checksum_unnecessary(struct sk_buff *skb)

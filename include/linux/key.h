@@ -71,6 +71,23 @@ struct net;
 
 #define KEY_PERM_UNDEF	0xffffffff
 
+/*
+ * The permissions required on a key that we're looking up.
+ */
+enum key_need_perm {
+	KEY_NEED_UNSPECIFIED,	/* Needed permission unspecified */
+	KEY_NEED_VIEW,		/* Require permission to view attributes */
+	KEY_NEED_READ,		/* Require permission to read content */
+	KEY_NEED_WRITE,		/* Require permission to update / modify */
+	KEY_NEED_SEARCH,	/* Require permission to search (keyring) or find (key) */
+	KEY_NEED_LINK,		/* Require permission to link */
+	KEY_NEED_SETATTR,	/* Require permission to change attributes */
+	KEY_NEED_UNLINK,	/* Require permission to unlink key */
+	KEY_SYSADMIN_OVERRIDE,	/* Special: override by CAP_SYS_ADMIN */
+	KEY_AUTHTOKEN_OVERRIDE,	/* Special: override by possession of auth token */
+	KEY_DEFER_PERM_CHECK,	/* Special: permission check is deferred */
+};
+
 struct seq_file;
 struct user_struct;
 struct signal_struct;

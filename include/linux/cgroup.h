@@ -626,6 +626,11 @@ static inline ino_t cgroup_ino(struct cgroup *cgrp)
 	return cgrp->kn->id.ino;
 }
 
+static inline u64 cgroup_id(struct cgroup *cgrp)
+{
+	return cgrp->kn->id.id;
+}
+
 /* cft/css accessors for cftype->write() operation */
 static inline struct cftype *of_cft(struct kernfs_open_file *of)
 {

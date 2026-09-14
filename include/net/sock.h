@@ -460,10 +460,10 @@ struct sock {
 				sk_kern_sock : 1,
 				sk_no_check_tx : 1,
 				sk_no_check_rx : 1,
-				sk_userlocks : 4,
-				sk_protocol  : 8,
-				sk_type      : 16;
+				sk_userlocks : 4;
 #define SK_PROTOCOL_MAX U8_MAX
+	u16			sk_type;
+	u16			sk_protocol;
 	u16			sk_gso_max_segs;
 	u8			sk_pacing_shift;
 	unsigned long	        sk_lingertime;
@@ -869,6 +869,10 @@ static inline void sock_reset_flag(struct sock *sk, enum sock_flags flag)
 {
 	__clear_bit(flag, &sk->sk_flags);
 }
+
+void sock_valbool_flag(struct sock *sk, int bit, int valbool);
+void sock_def_readable(struct sock *sk);
+int sock_bindtoindex(struct sock *sk, int ifindex, bool lock_sk);
 
 static inline bool sock_flag(const struct sock *sk, enum sock_flags flag)
 {
@@ -2636,6 +2640,15 @@ static inline bool sk_fullsock(const struct sock *sk)
 {
 	return (1 << sk->sk_state) & ~(TCPF_TIME_WAIT | TCPF_NEW_SYN_RECV);
 }
+
+static inline bool
+sk_is_refcounted(struct sock *sk)
+{
+	/* Only full sockets have sk->sk_flags. */
+	return !sk_fullsock(sk) || !sock_flag(sk, SOCK_RCU_FREE);
+}
+
+void sock_pfree(struct sk_buff *skb);
 
 /* Checks if this SKB belongs to an HW offloaded socket
  * and whether any SW fallbacks are required based on dev.
