@@ -287,14 +287,13 @@ proc_read_err:
 	return ret;
 }
 
-static const struct file_operations fts_proc_fops = {
-	.owner = THIS_MODULE,
-	.read  = fts_debug_read,
-	.write = fts_debug_write,
+static const struct proc_ops fts_proc_fops = {
+    .proc_read   = fts_debug_read,
+    .proc_write  = fts_debug_write,
 };
 #else
-static int fts_debug_write(struct file *filp,
-	const char __user *buff, unsigned long len, void *data)
+static int fts_debug_write(
+    struct file *filp, const char __user *buff, unsigned long count, void *data)
 {
 	u8 *writebuf = NULL;
 	u8 tmpbuf[PROC_BUF_SIZE] = { 0 };
@@ -497,6 +496,69 @@ proc_read_err:
 	}
 	return ret;
 }
+#endif
+
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 10, 0))
+static int fts_ta_open(struct inode *inode, struct file *file)
+{
+    struct fts_ts_data *ts_data = PDE_DATA(inode);
+
+    if (ts_data->touch_analysis_support) {
+        FTS_INFO("fts_ta open");
+        ts_data->ta_buf = kzalloc(FTS_MAX_TOUCH_BUF, GFP_KERNEL);
+        if (!ts_data->ta_buf) {
+            FTS_ERROR("kzalloc for ta_buf fails");
+            return -ENOMEM;
+        }
+    }
+    return 0;
+}
+
+static int fts_ta_release(struct inode *inode, struct file *file)
+{
+    struct fts_ts_data *ts_data = PDE_DATA(inode);
+
+    if (ts_data->touch_analysis_support) {
+        FTS_INFO("fts_ta close");
+        ts_data->ta_flag = 0;
+        if (ts_data->ta_buf) {
+            kfree(ts_data->ta_buf);
+            ts_data->ta_buf = NULL;
+        }
+    }
+    return 0;
+}
+
+static ssize_t fts_ta_read(
+    struct file *filp, char __user *buff, size_t count, loff_t *ppos)
+{
+    int read_num = (int)count;
+    struct fts_ts_data *ts_data = PDE_DATA(file_inode(filp));
+
+    if (!ts_data->touch_analysis_support || !ts_data->ta_buf) {
+        FTS_ERROR("touch_analysis is disabled, or ta_buf is NULL");
+        return -EINVAL;
+    }
+
+    if (!(filp->f_flags & O_NONBLOCK)) {
+        ts_data->ta_flag = 1;
+        wait_event_interruptible(ts_data->ts_waitqueue, !ts_data->ta_flag);
+    }
+
+    read_num = (ts_data->ta_size < read_num) ? ts_data->ta_size : read_num;
+    if ((read_num > 0) && (copy_to_user(buff, ts_data->ta_buf, read_num))) {
+        FTS_ERROR("copy to user error");
+        return -EFAULT;
+    }
+
+    return read_num;
+}
+
+static const struct proc_ops fts_procta_fops = {
+    .proc_open = fts_ta_open,
+    .proc_release = fts_ta_release,
+    .proc_read = fts_ta_read,
+};
 #endif
 
 int fts_create_apk_debug_channel(struct fts_ts_data *ts_data)
