@@ -276,13 +276,8 @@ static void __cqhci_enable(struct cqhci_host *cq_host)
 	if (cq_host->caps & CQHCI_TASK_DESC_SZ_128)
 		cqcfg |= CQHCI_TASK_DESC_SZ;
 
-<<<<<<< HEAD:drivers/mmc/host/cqhci.c
 	if (cqhci_host_is_crypto_supported(cq_host))
 		cqcfg |= CQHCI_ICE_ENABLE;
-=======
-	if (mmc->caps2 & MMC_CAP2_CRYPTO)
-		cqcfg |= CQHCI_CRYPTO_GENERAL_ENABLE;
->>>>>>> google/android12-5.4-lts:drivers/mmc/host/cqhci-core.c
 
 	cqhci_writel(cq_host, cqcfg, CQHCI_CFG);
 
@@ -671,7 +666,6 @@ static int cqhci_request(struct mmc_host *mmc, struct mmc_request *mrq)
 	}
 
 	if (mrq->data) {
-<<<<<<< HEAD:drivers/mmc/host/cqhci.c
 		err = cqhci_crypto_get_ctx(cq_host, mrq, &ice_ctx);
 		if (err) {
 			pr_err("%s: failed to retrieve crypto ctx for tag %d\n",
@@ -682,9 +676,6 @@ static int cqhci_request(struct mmc_host *mmc, struct mmc_request *mrq)
 		cqhci_prep_task_desc(mrq, &data, 1);
 		*task_desc = cpu_to_le64(data);
 		cqhci_prep_crypto_desc(cq_host, task_desc, ice_ctx);
-=======
-		cqhci_prep_task_desc(mrq, cq_host, tag);
->>>>>>> google/android12-5.4-lts:drivers/mmc/host/cqhci-core.c
 
 		err = cqhci_prep_tran_desc(mrq, cq_host, tag);
 		if (err) {
@@ -918,7 +909,6 @@ irqreturn_t cqhci_irq(struct mmc_host *mmc, u32 intmask, int cmd_error,
 	mmc_log_string(mmc, "CQIS: 0x%x cmd_error : %d data_err: %d\n",
 			status, cmd_error, data_error);
 
-<<<<<<< HEAD:drivers/mmc/host/cqhci.c
 	if ((status & CQHCI_IS_RED) || cmd_error || data_error || ice_err) {
 #if defined(CONFIG_SDC_QTI)
 		mmc->need_hw_reset = true;
@@ -929,10 +919,6 @@ irqreturn_t cqhci_irq(struct mmc_host *mmc, u32 intmask, int cmd_error,
 		if (status & CQHCI_IS_ICCE)
 			mmc->err_stats[MMC_ERR_CMDQ_ICCE]++;
 #endif
-=======
-	if ((status & (CQHCI_IS_RED | CQHCI_IS_GCE | CQHCI_IS_ICCE)) ||
-	    cmd_error || data_error)
->>>>>>> google/android12-5.4-lts:drivers/mmc/host/cqhci-core.c
 		cqhci_error_irq(mmc, status, cmd_error, data_error);
 	}
 
