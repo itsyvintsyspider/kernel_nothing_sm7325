@@ -1592,15 +1592,18 @@ static long kernel_waitid(int which, pid_t upid, struct waitid_info *infop,
 		else
 			pid = get_task_pid(current, PIDTYPE_PGID);
 		break;
-	case P_PIDFD:
+	case P_PIDFD: {
+		unsigned int pidfd_flags;
+
 		type = PIDTYPE_PID;
 		if (upid < 0)
 			return -EINVAL;
 
-		pid = pidfd_get_pid(upid);
+		pid = pidfd_get_pid(upid, &pidfd_flags);
 		if (IS_ERR(pid))
 			return PTR_ERR(pid);
 		break;
+	}
 	default:
 		return -EINVAL;
 	}
