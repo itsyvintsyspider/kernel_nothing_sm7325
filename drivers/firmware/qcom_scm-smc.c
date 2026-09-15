@@ -1954,6 +1954,23 @@ int __qcom_scm_clear_ice_key(struct device *dev, uint32_t index,
 	return qcom_scm_call_noretry(dev, &desc);
 }
 
+/* "food" value identifying the UFS storage crypto engine, see crypto-qti-tz.c */
+#define QCOM_SCM_ICE_UFS_CE 10
+
+int __qcom_scm_ice_invalidate_key(struct device *dev, u32 index)
+{
+	return __qcom_scm_clear_ice_key(dev, index, QCOM_SCM_ICE_UFS_CE);
+}
+
+int __qcom_scm_ice_set_key(struct device *dev, u32 index,
+			   dma_addr_t key_phys, u32 key_size,
+			   enum qcom_scm_ice_cipher cipher, u32 data_unit_size)
+{
+	return __qcom_scm_config_set_ice_key(dev, index, key_phys, key_size,
+					     cipher, data_unit_size,
+					     QCOM_SCM_ICE_UFS_CE);
+}
+
 int __qcom_scm_hdcp_req(struct device *dev, struct qcom_scm_hdcp_req *req,
 			u32 req_cnt, u32 *resp)
 {
