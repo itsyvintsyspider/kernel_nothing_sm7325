@@ -8,6 +8,9 @@
 
 #include <linux/types.h>
 
+#ifndef __LINUX_BLK_CRYPTO_TYPES_DEFINED
+#define __LINUX_BLK_CRYPTO_TYPES_DEFINED
+
 enum blk_crypto_mode_num {
 	BLK_ENCRYPTION_MODE_INVALID,
 	BLK_ENCRYPTION_MODE_AES_256_XTS,
@@ -72,6 +75,8 @@ struct bio_crypt_ctx {
 	const struct blk_crypto_key	*bc_key;
 	u64				bc_dun[BLK_CRYPTO_DUN_ARRAY_SIZE];
 };
+
+#endif /* __LINUX_BLK_CRYPTO_TYPES_DEFINED */
 
 #include <linux/blk_types.h>
 #include <linux/blkdev.h>
