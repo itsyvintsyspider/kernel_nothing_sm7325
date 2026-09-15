@@ -26,6 +26,8 @@
 #include <trace/hooks/usb.h>
 #include <trace/hooks/psci.h>
 #include <trace/hooks/ion.h>
+#include <trace/hooks/memory.h>
+#include <trace/hooks/syscall_check.h>
 
 /*
  * Export tracepoints that act as a bare tracehook (ie: have no trace event

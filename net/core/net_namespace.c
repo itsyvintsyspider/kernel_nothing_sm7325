@@ -39,6 +39,20 @@ EXPORT_SYMBOL_GPL(net_namespace_list);
 DECLARE_RWSEM(net_rwsem);
 EXPORT_SYMBOL_GPL(net_rwsem);
 
+static atomic64_t net_cookie_gen;
+
+u64 __net_gen_cookie(struct net *net)
+{
+	while (1) {
+		u64 res = atomic64_read(&net->net_cookie);
+
+		if (res)
+			return res;
+		res = atomic64_inc_return(&net_cookie_gen);
+		atomic64_cmpxchg(&net->net_cookie, 0, res);
+	}
+}
+
 #ifdef CONFIG_KEYS
 static struct key_tag init_net_key_domain = { .usage = REFCOUNT_INIT(1) };
 #endif

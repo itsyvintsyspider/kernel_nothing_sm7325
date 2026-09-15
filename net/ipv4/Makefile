@@ -17,6 +17,9 @@ obj-y     := route.o inetpeer.o protocol.o \
 	     metrics.o netlink.o nexthop.o
 
 obj-$(CONFIG_BPFILTER) += bpfilter/
+ifeq ($(CONFIG_BPF_JIT),y)
+obj-$(CONFIG_BPF_SYSCALL) += bpf_tcp_ca.o
+endif
 
 obj-$(CONFIG_NET_IP_TUNNEL) += ip_tunnel.o
 obj-$(CONFIG_SYSCTL) += sysctl_net_ipv4.o
