@@ -5,6 +5,7 @@
  */
 #include <linux/init.h>
 #include <linux/err.h>
+#include <linux/compat.h>
 #include <linux/module.h>
 #include <linux/time.h>
 #include <linux/wait.h>

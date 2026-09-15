@@ -9,6 +9,7 @@
 #include <linux/miscdevice.h>
 #include <linux/uaccess.h>
 #include <linux/mutex.h>
+#include <linux/compat.h>
 #include <linux/msm_ion.h>
 #include <dsp/msm_audio_ion.h>
 #include <dsp/audio_calibration.h>

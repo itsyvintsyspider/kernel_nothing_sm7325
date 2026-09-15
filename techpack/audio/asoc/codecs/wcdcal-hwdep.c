@@ -9,6 +9,7 @@
 #include <linux/slab.h>
 #include <linux/ioctl.h>
 #include <linux/bitops.h>
+#include <linux/compat.h>
 #include <sound/hwdep.h>
 #include <audio/sound/msmcal-hwdep.h>
 #include <sound/soc.h>
