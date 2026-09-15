@@ -1367,6 +1367,17 @@ config SDX_EXT_IPC
 
       If unsure, say N.
 
+config GP_FAULT_PANIC
+	tristate "trigger panic when GP_FAULT"
+	help
+	  If enable this config, The device will into dump mode when GP_FAULT.
+
+config NOTHING_POWERINFO_RPMH
+	bool "RPMH move to sysfs"
+	default n
+	help
+		This option changes sys/power/soc_sleep and soc/power/rpmh_stats
+
 source "drivers/soc/qcom/icnss2/Kconfig"
 
 source "drivers/soc/qcom/gnsssirf/Kconfig"

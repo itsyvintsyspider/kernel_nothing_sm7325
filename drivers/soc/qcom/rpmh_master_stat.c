@@ -83,6 +83,9 @@ struct msm_rpmh_profile_unit {
 
 struct rpmh_master_stats_prv_data {
 	struct kobj_attribute ka;
+#ifdef CONFIG_NOTHING_POWERINFO_RPMH
+    struct kobj_attribute ka_master_nt;
+#endif
 	struct kobject *kobj;
 };
 
@@ -90,6 +93,71 @@ static struct msm_rpmh_master_stats apss_master_stats;
 static void __iomem *rpmh_unit_base;
 
 static DEFINE_MUTEX(rpmh_stats_mutex);
+
+#ifdef CONFIG_NOTHING_POWERINFO_RPMH
+static inline u64 get_time_in_msec(u64 counter)
+{
+	do_div(counter, arch_timer_get_rate()/1000);
+
+	return counter;
+}
+
+static ssize_t nt_msm_rpmh_master_stats_print_data(char *prvbuf, ssize_t length,
+				struct msm_rpmh_master_stats *record,
+				const char *name)
+{
+	uint64_t accumulated_duration = record->accumulated_duration;
+	/*
+	 * If a master is in sleep when reading the sleep stats from SMEM
+	 * adjust the accumulated sleep duration to show actual sleep time.
+	 * This ensures that the displayed stats are real when used for
+	 * the purpose of computing battery utilization.
+	 */
+	if (record->last_entered > record->last_exited)
+		accumulated_duration +=
+				(__arch_counter_get_cntvct()
+				- record->last_entered);
+    return scnprintf(prvbuf, length, "%s:%x:%llx\n", name, record->counts, get_time_in_msec(accumulated_duration));
+}
+
+static ssize_t nt_msm_rpmh_master_stats_show(struct kobject *kobj, struct kobj_attribute *attr, char *buf)
+{
+	ssize_t length = 0;
+	int i = 0;
+	struct msm_rpmh_master_stats *record = NULL;
+	bool skip_apss = false;
+
+	mutex_lock(&rpmh_stats_mutex);
+
+	/* First Read APSS master stats */
+
+	if (rpmh_unit_base) {
+		length = nt_msm_rpmh_master_stats_print_data(buf, PAGE_SIZE,
+							  &apss_master_stats,
+							  "APSS");
+		skip_apss = true;
+	}
+	/* Read SMEM data written by other masters */
+
+	for (i = 0; i < ARRAY_SIZE(rpmh_masters); i++) {
+		if (skip_apss && i == 0)
+			continue;
+
+		record = (struct msm_rpmh_master_stats *) qcom_smem_get(
+					rpmh_masters[i].pid,
+					rpmh_masters[i].smem_id, NULL);
+		if (!IS_ERR_OR_NULL(record) && (PAGE_SIZE - length > 0))
+			length += nt_msm_rpmh_master_stats_print_data(
+					buf + length, PAGE_SIZE - length,
+					record,
+					rpmh_masters[i].master_name);
+	}
+
+	mutex_unlock(&rpmh_stats_mutex);
+
+	return length;
+}
+#endif
 
 static ssize_t msm_rpmh_master_stats_print_data(char *prvbuf, ssize_t length,
 				struct msm_rpmh_master_stats *record,
@@ -203,7 +271,61 @@ struct msm_rpmh_master_stats *msm_rpmh_get_apss_data(void)
 	return &apss_master_stats;
 }
 EXPORT_SYMBOL(msm_rpmh_get_apss_data);
+#ifdef CONFIG_NOTHING_POWERINFO_RPMH
+static int msm_rpmh_master_stats_probe(struct platform_device *pdev)
+{
+	struct rpmh_master_stats_prv_data *prvdata = NULL;
+	struct kobject *rpmh_master_stats_kobj = NULL;
+	int ret = -ENOMEM;
 
+	prvdata = devm_kzalloc(&pdev->dev, sizeof(*prvdata), GFP_KERNEL);
+	if (!prvdata)
+		return ret;
+
+	rpmh_master_stats_kobj = kobject_create_and_add(
+					"rpmh_stats",
+					power_kobj);
+	if (!rpmh_master_stats_kobj)
+		return ret;
+
+	prvdata->kobj = rpmh_master_stats_kobj;
+
+	sysfs_attr_init(&prvdata->ka.attr);
+	prvdata->ka.attr.mode = 0444;
+	prvdata->ka.attr.name = "master_stats";
+	prvdata->ka.show = msm_rpmh_master_stats_show;
+	prvdata->ka.store = NULL;
+	
+	sysfs_attr_init(&prvdata->ka_master_nt.attr);
+	prvdata->ka_master_nt.attr.mode = 0444;
+	prvdata->ka_master_nt.attr.name = "nt_master_stats";
+	prvdata->ka_master_nt.show = nt_msm_rpmh_master_stats_show;
+    prvdata->ka_master_nt.store = NULL;
+
+	ret = sysfs_create_file(prvdata->kobj, &prvdata->ka.attr);
+	ret |= sysfs_create_file(prvdata->kobj, &prvdata->ka_master_nt.attr);
+	if (ret) {
+		pr_err("sysfs_create_file failed\n");
+		goto fail_sysfs;
+	}
+
+	rpmh_unit_base = of_iomap(pdev->dev.of_node, 0);
+	if (!rpmh_unit_base) {
+		pr_err("Failed to get rpmh_unit_base or rpm based target\n");
+		rpmh_unit_base = NULL;
+	} else {
+		apss_master_stats.version_id = 0x1;
+	}
+
+	platform_set_drvdata(pdev, prvdata);
+	return ret;
+
+fail_sysfs:
+	kobject_put(prvdata->kobj);
+	return ret;	
+}
+
+#else
 static int msm_rpmh_master_stats_probe(struct platform_device *pdev)
 {
 	struct rpmh_master_stats_prv_data *prvdata = NULL;
@@ -249,6 +371,7 @@ fail_sysfs:
 	kobject_put(prvdata->kobj);
 	return ret;
 }
+#endif
 
 static int msm_rpmh_master_stats_remove(struct platform_device *pdev)
 {
@@ -258,6 +381,9 @@ static int msm_rpmh_master_stats_remove(struct platform_device *pdev)
 				platform_get_drvdata(pdev);
 
 	sysfs_remove_file(prvdata->kobj, &prvdata->ka.attr);
+#ifdef CONFIG_NOTHING_POWERINFO_RPMH
+	sysfs_remove_file(prvdata->kobj, &prvdata->ka_master_nt.attr);
+#endif
 	kobject_put(prvdata->kobj);
 	platform_set_drvdata(pdev, NULL);
 	if (rpmh_unit_base)

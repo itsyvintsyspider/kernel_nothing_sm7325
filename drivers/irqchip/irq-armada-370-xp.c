@@ -466,6 +466,7 @@ static int armada_xp_set_affinity(struct irq_data *d,
 
 	return IRQ_SET_MASK_OK;
 }
+#endif
 
 static void armada_xp_mpic_smp_cpu_init(void)
 {

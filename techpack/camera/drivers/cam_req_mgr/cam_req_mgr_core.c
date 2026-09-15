@@ -759,24 +759,6 @@ static int __cam_req_mgr_check_next_req_slot(
 
 	CAM_DBG(CAM_CRM, "idx: %d: slot->status %d", idx, slot->status);
 
-	/*
-	 * Some slot can't be reset due to irq congestion and
-	 * performance issue, we need to reset it when we
-	 * want to move to this slot.
-	 */
-	if (slot->status == CRM_SLOT_STATUS_REQ_APPLIED) {
-		CAM_WARN(CAM_CRM,
-			"slot[%d] wasn't reset, reset it now",
-			idx);
-		if (in_q->last_applied_idx == idx) {
-			CAM_WARN(CAM_CRM,
-				"last_applied_idx: %d",
-				in_q->last_applied_idx);
-			in_q->last_applied_idx = -1;
-		}
-		__cam_req_mgr_reset_req_slot(link, idx);
-	}
-
 	/* Check if there is new req from CSL, if not complete req */
 	if (slot->status == CRM_SLOT_STATUS_NO_REQ) {
 		rc = __cam_req_mgr_check_for_lower_pd_devices(link);
@@ -2300,13 +2282,10 @@ static int __cam_req_mgr_create_subdevs(
  *
  */
 static void __cam_req_mgr_destroy_subdev(
-	struct cam_req_mgr_connected_device **l_device)
+	struct cam_req_mgr_connected_device *l_device)
 {
-	CAM_DBG(CAM_CRM, "*l_device %pK", *l_device);
-	if (*(l_device) != NULL) {
-		kfree(*(l_device));
-		*l_device = NULL;
-	}
+	kfree(l_device);
+	l_device = NULL;
 }
 
 /**
@@ -3842,7 +3821,7 @@ static int __cam_req_mgr_unlink(
 	__cam_req_mgr_destroy_link_info(link);
 	/* Free memory holding data of linked devs */
 
-	__cam_req_mgr_destroy_subdev(&link->l_dev);
+	__cam_req_mgr_destroy_subdev(link->l_dev);
 
 	/* Destroy the link handle */
 	rc = cam_destroy_link_hdl(link->link_hdl);
@@ -4020,7 +3999,7 @@ int cam_req_mgr_link(struct cam_req_mgr_ver_info *link_info)
 	mutex_unlock(&g_crm_core_dev->crm_lock);
 	return rc;
 setup_failed:
-	__cam_req_mgr_destroy_subdev(&link->l_dev);
+	__cam_req_mgr_destroy_subdev(link->l_dev);
 create_subdev_failed:
 	cam_destroy_link_hdl(link->link_hdl);
 	link_info->u.link_info_v1.link_hdl = -1;
@@ -4053,7 +4032,6 @@ int cam_req_mgr_link_v2(struct cam_req_mgr_ver_info *link_info)
 
 	mutex_lock(&g_crm_core_dev->crm_lock);
 
-	/* session hdl's priv data is cam session struct */
 	cam_session = cam_get_session_priv(link_info->u.link_info_v2.session_hdl);
 	if (!cam_session || (cam_session->session_hdl != link_info->u.link_info_v2.session_hdl)) {
 		CAM_ERR(CAM_CRM, "session: %s, link_info->ses_hdl:%x, session->ses_hdl:%x",
@@ -4137,7 +4115,7 @@ int cam_req_mgr_link_v2(struct cam_req_mgr_ver_info *link_info)
 	mutex_unlock(&g_crm_core_dev->crm_lock);
 	return rc;
 setup_failed:
-	__cam_req_mgr_destroy_subdev(&link->l_dev);
+	__cam_req_mgr_destroy_subdev(link->l_dev);
 create_subdev_failed:
 	cam_destroy_link_hdl(link->link_hdl);
 	link_info->u.link_info_v2.link_hdl = -1;

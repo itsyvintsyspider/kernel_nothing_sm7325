@@ -603,6 +603,7 @@ int check_and_correct_requested_length(struct hfs_bnode *node, int off, int len)
 	return len;
 }
 
+
 /* compatibility */
 #define hfsp_mt2ut(t)		(struct timespec){ .tv_sec = __hfsp_mt2ut(t) }
 #define hfsp_ut2mt(t)		__hfsp_ut2mt((t).tv_sec)

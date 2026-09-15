@@ -14,6 +14,9 @@ android/abi_gki_aarch64_hikey960
 android/abi_gki_aarch64_hikey
 android/abi_gki_aarch64_fcnt
 android/abi_gki_aarch64_qcom
+android/abi_gki_aarch64_sony
+android/abi_gki_aarch64_sonywalkman
+android/abi_gki_aarch64_trimble
 android/abi_gki_aarch64_unisoc
 android/abi_gki_aarch64_exynos
 android/abi_gki_aarch64_sunxi

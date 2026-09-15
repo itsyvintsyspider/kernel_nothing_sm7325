@@ -4491,5 +4491,4 @@ static inline void f2fs_set_lookup_mode(struct f2fs_sb_info *sbi,
 
 #define EFSBADCRC	EBADMSG		/* Bad CRC detected */
 #define EFSCORRUPTED	EUCLEAN		/* Filesystem is corrupted */
-
 #endif /* _LINUX_F2FS_H */

@@ -300,3 +300,19 @@ void ufshcd_crypto_setup_rq_keyslot_manager(struct ufs_hba *hba,
 	if (hba->caps & UFSHCD_CAP_CRYPTO)
 		blk_ksm_register(&hba->ksm, q);
 }
+
+int ufshcd_crypto_suspend(struct ufs_hba *hba, enum ufs_pm_op pm_op)
+{
+	if (hba->crypto_vops && hba->crypto_vops->suspend)
+		return hba->crypto_vops->suspend(hba, pm_op);
+
+	return 0;
+}
+
+int ufshcd_crypto_resume(struct ufs_hba *hba, enum ufs_pm_op pm_op)
+{
+	if (hba->crypto_vops && hba->crypto_vops->resume)
+		return hba->crypto_vops->resume(hba, pm_op);
+
+	return 0;
+}
