@@ -234,61 +234,6 @@ struct mmc_request;
 struct cqhci_slot;
 struct cqhci_host;
 
-/* CCAP - Crypto Capability 100h */
-union cqhci_crypto_capabilities {
-	__le32 reg_val;
-	struct {
-		u8 num_crypto_cap;
-		u8 config_count;
-		u8 reserved;
-		u8 config_array_ptr;
-	};
-};
-
-enum cqhci_crypto_key_size {
-	CQHCI_CRYPTO_KEY_SIZE_INVALID	= 0x0,
-	CQHCI_CRYPTO_KEY_SIZE_128	= 0x1,
-	CQHCI_CRYPTO_KEY_SIZE_192	= 0x2,
-	CQHCI_CRYPTO_KEY_SIZE_256	= 0x3,
-	CQHCI_CRYPTO_KEY_SIZE_512	= 0x4,
-};
-
-enum cqhci_crypto_alg {
-	CQHCI_CRYPTO_ALG_AES_XTS		= 0x0,
-	CQHCI_CRYPTO_ALG_BITLOCKER_AES_CBC	= 0x1,
-	CQHCI_CRYPTO_ALG_AES_ECB		= 0x2,
-	CQHCI_CRYPTO_ALG_ESSIV_AES_CBC		= 0x3,
-};
-
-/* x-CRYPTOCAP - Crypto Capability X */
-union cqhci_crypto_cap_entry {
-	__le32 reg_val;
-	struct {
-		u8 algorithm_id;
-		u8 sdus_mask; /* Supported data unit size mask */
-		u8 key_size;
-		u8 reserved;
-	};
-};
-
-#define CQHCI_CRYPTO_CONFIGURATION_ENABLE (1 << 7)
-#define CQHCI_CRYPTO_KEY_MAX_SIZE 64
-/* x-CRYPTOCFG - Crypto Configuration X */
-union cqhci_crypto_cfg_entry {
-	__le32 reg_val[32];
-	struct {
-		u8 crypto_key[CQHCI_CRYPTO_KEY_MAX_SIZE];
-		u8 data_unit_size;
-		u8 crypto_cap_idx;
-		u8 reserved_1;
-		u8 config_enable;
-		u8 reserved_multi_host;
-		u8 reserved_2;
-		u8 vsb[2];
-		u8 reserved_3[56];
-	};
-};
-
 struct cqhci_host_crypto_variant_ops {
 	void (*setup_rq_keyslot_manager)(struct cqhci_host *host,
 					 struct request_queue *q);

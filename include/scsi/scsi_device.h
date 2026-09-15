@@ -237,11 +237,6 @@ struct scsi_device {
 	ANDROID_KABI_RESERVE(4);
 
 	unsigned long		sdev_data[0];
-
-	ANDROID_KABI_RESERVE(1);
-	ANDROID_KABI_RESERVE(2);
-	ANDROID_KABI_RESERVE(3);
-	ANDROID_KABI_RESERVE(4);
 } __attribute__((aligned(sizeof(unsigned long))));
 
 #define	to_scsi_device(d)	\

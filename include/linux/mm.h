@@ -491,16 +491,6 @@ static inline bool fault_flag_allow_retry_first(unsigned int flags)
 	{ FAULT_FLAG_INTERRUPTIBLE,	"INTERRUPTIBLE" }
 
 /*
- * Return: true if the page fault allows retry and this is the first
- * attempt of the fault handling; false otherwise.
- */
-static inline bool fault_flag_allow_retry_first(unsigned int flags)
-{
-	return (flags & FAULT_FLAG_ALLOW_RETRY) &&
-	    (!(flags & FAULT_FLAG_TRIED));
-}
-
-/*
  * vm_fault is filled by the the pagefault handler and passed to the vma's
  * ->fault function. The vma's ->fault is responsible for returning a bitmask
  * of VM_FAULT_xxx flags that give details about how the fault was handled.
