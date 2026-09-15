@@ -1,0 +1,7 @@
+menu "Nothing board selection"
+config NOTHING
+        bool "Support for Nothing products"
+        depends on ARCH_QCOM
+        help
+          This adds support for Nothing products.
+endmenu
