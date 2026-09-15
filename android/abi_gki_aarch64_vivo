@@ -21,11 +21,7 @@
   alloc_skb_with_frags
   alloc_workqueue
   amba_bustype
-<<<<<<<< HEAD:android/abi_gki_aarch64_vivo
   anon_inode_getfile
-========
-  arch_bpf_jit_check_func
->>>>>>>> google/android12-5.4-lts:android/abi_gki_aarch64_qcom
   __arch_clear_user
   __arch_copy_from_user
   __arch_copy_in_user
@@ -91,10 +87,6 @@
   bus_register
   bus_set_iommu
   bus_unregister
-<<<<<<<< HEAD:android/abi_gki_aarch64_vivo
-========
-  call_netdevice_notifiers
->>>>>>>> google/android12-5.4-lts:android/abi_gki_aarch64_qcom
   cancel_delayed_work
   cancel_delayed_work_sync
   cancel_work_sync
@@ -133,11 +125,7 @@
   cfg80211_tdls_oper_request
   cfg80211_unlink_bss
   cfg80211_vendor_cmd_reply
-<<<<<<<< HEAD:android/abi_gki_aarch64_vivo
   __cfi_slowpath
-========
-  check_disk_change
->>>>>>>> google/android12-5.4-lts:android/abi_gki_aarch64_qcom
   __check_object_size
   __class_create
   class_destroy
@@ -210,13 +198,6 @@
   _copy_from_iter_full
   _copy_to_iter
   cpu_bit_bitmap
-<<<<<<<< HEAD:android/abi_gki_aarch64_vivo
-========
-  cpu_down
-  cpufreq_cpu_get
-  cpufreq_cpu_put
-  cpufreq_generic_attr
->>>>>>>> google/android12-5.4-lts:android/abi_gki_aarch64_qcom
   cpufreq_quick_get_max
   cpufreq_register_notifier
   cpufreq_unregister_notifier
@@ -247,33 +228,18 @@
   crypto_alloc_shash
   crypto_alloc_skcipher
   crypto_destroy_tfm
-<<<<<<<< HEAD:android/abi_gki_aarch64_vivo
-========
-  crypto_enqueue_request
-  crypto_init_queue
-  crypto_register_alg
->>>>>>>> google/android12-5.4-lts:android/abi_gki_aarch64_qcom
   crypto_register_rngs
   crypto_shash_final
   crypto_shash_setkey
   crypto_shash_update
   crypto_skcipher_decrypt
   crypto_skcipher_encrypt
-<<<<<<<< HEAD:android/abi_gki_aarch64_vivo
-========
-  crypto_unregister_alg
->>>>>>>> google/android12-5.4-lts:android/abi_gki_aarch64_qcom
   crypto_unregister_rngs
   csum_ipv6_magic
   csum_partial
   csum_tcpudp_nofold
   _ctype
   datagram_poll
-<<<<<<<< HEAD:android/abi_gki_aarch64_vivo
-========
-  d_drop
-  default_llseek
->>>>>>>> google/android12-5.4-lts:android/abi_gki_aarch64_qcom
   default_wake_function
   delayed_work_timer_fn
   del_timer
@@ -416,10 +382,6 @@
   dev_pm_opp_find_freq_exact
   dev_pm_opp_find_freq_floor
   dev_pm_opp_get_opp_count
-<<<<<<<< HEAD:android/abi_gki_aarch64_vivo
-========
-  dev_pm_opp_get_opp_table
->>>>>>>> google/android12-5.4-lts:android/abi_gki_aarch64_qcom
   dev_pm_opp_get_voltage
   dev_pm_opp_put
   dev_pm_opp_put_opp_table
@@ -435,11 +397,7 @@
   dev_pm_qos_update_request
   dev_queue_xmit
   devres_add
-<<<<<<<< HEAD:android/abi_gki_aarch64_vivo
   devres_alloc_node
-========
-  devres_destroy
->>>>>>>> google/android12-5.4-lts:android/abi_gki_aarch64_qcom
   devres_free
   devres_release
   dev_set_name
@@ -605,10 +563,6 @@
   drm_dev_put
   drm_dev_register
   drm_dev_unregister
-<<<<<<<< HEAD:android/abi_gki_aarch64_vivo
-========
-  drm_do_get_edid
->>>>>>>> google/android12-5.4-lts:android/abi_gki_aarch64_qcom
   drm_dp_atomic_find_vcpi_slots
   drm_dp_atomic_release_vcpi_slots
   drm_dp_aux_register
@@ -747,15 +701,6 @@
   drm_set_preferred_mode
   drm_universal_plane_init
   drm_vblank_init
-<<<<<<<< HEAD:android/abi_gki_aarch64_vivo
-========
-  drm_vma_offset_add
-  drm_vma_offset_lookup_locked
-  drm_vma_offset_manager_destroy
-  drm_vma_offset_manager_init
-  drm_vma_offset_remove
-  drop_nlink
->>>>>>>> google/android12-5.4-lts:android/abi_gki_aarch64_qcom
   drm_wait_one_vblank
   dump_stack
   enable_irq
@@ -793,13 +738,8 @@
   find_vpid
   finish_wait
   firmware_request_nowarn
-<<<<<<<< HEAD:android/abi_gki_aarch64_vivo
   fixed_phy_register
   fixed_phy_unregister
-========
-  flow_keys_basic_dissector
-  flush_dcache_page
->>>>>>>> google/android12-5.4-lts:android/abi_gki_aarch64_qcom
   flush_delayed_work
   flush_work
   flush_workqueue
@@ -817,23 +757,13 @@
   free_percpu
   free_percpu_irq
   freezing_slow_path
-<<<<<<<< HEAD:android/abi_gki_aarch64_vivo
-========
-  freq_qos_add_request
-  freq_qos_remove_request
-  freq_qos_update_request
-  fsl8250_handle_irq
->>>>>>>> google/android12-5.4-lts:android/abi_gki_aarch64_qcom
   fwnode_connection_find_match
   fwnode_get_parent
   fwnode_handle_put
   fwnode_property_present
   fwnode_property_read_string
   fwnode_property_read_u32_array
-<<<<<<<< HEAD:android/abi_gki_aarch64_vivo
   fwnode_usb_role_switch_get
-========
->>>>>>>> google/android12-5.4-lts:android/abi_gki_aarch64_qcom
   gcd
   generic_device_group
   generic_handle_irq
@@ -947,10 +877,7 @@
   i2c_smbus_write_word_data
   i2c_transfer
   i2c_transfer_buffer_flags
-<<<<<<<< HEAD:android/abi_gki_aarch64_vivo
   i2c_unregister_device
-========
->>>>>>>> google/android12-5.4-lts:android/abi_gki_aarch64_qcom
   icc_get
   icc_link_create
   icc_node_add
@@ -1061,12 +988,7 @@
   irq_create_fwspec_mapping
   irq_dispose_mapping
   __irq_domain_add
-<<<<<<<< HEAD:android/abi_gki_aarch64_vivo
   irq_domain_add_simple
-========
-  irq_domain_alloc_irqs_parent
-  irq_domain_create_hierarchy
->>>>>>>> google/android12-5.4-lts:android/abi_gki_aarch64_qcom
   irq_domain_free_irqs_common
   irq_domain_free_irqs_parent
   irq_domain_get_irq_data
@@ -1132,10 +1054,7 @@
   kmem_cache_free
   kmemdup
   kmemdup_nul
-<<<<<<<< HEAD:android/abi_gki_aarch64_vivo
   kmsg_dump_get_line
-========
->>>>>>>> google/android12-5.4-lts:android/abi_gki_aarch64_qcom
   kobject_create_and_add
   kobject_del
   kobject_init_and_add
@@ -1155,11 +1074,6 @@
   kstrtou16
   kstrtou8
   kstrtouint
-<<<<<<<< HEAD:android/abi_gki_aarch64_vivo
-========
-  kstrtouint_from_user
-  kstrtoul_from_user
->>>>>>>> google/android12-5.4-lts:android/abi_gki_aarch64_qcom
   kstrtoull
   kstrtoull_from_user
   kthread_cancel_delayed_work_sync
@@ -1189,12 +1103,7 @@
   kvfree
   kvmalloc_node
   kzfree
-<<<<<<<< HEAD:android/abi_gki_aarch64_vivo
   led_blink_set
-========
-  led_classdev_flash_register_ext
-  led_classdev_flash_unregister
->>>>>>>> google/android12-5.4-lts:android/abi_gki_aarch64_qcom
   led_classdev_register_ext
   led_classdev_unregister
   led_get_default_pattern
@@ -1221,7 +1130,6 @@
   mbox_free_channel
   mbox_request_channel
   mbox_send_message
-<<<<<<<< HEAD:android/abi_gki_aarch64_vivo
   mdiobus_alloc_size
   mdiobus_free
   __mdiobus_read
@@ -1230,8 +1138,6 @@
   mdiobus_unregister
   __mdiobus_write
   mdiobus_write
-========
->>>>>>>> google/android12-5.4-lts:android/abi_gki_aarch64_qcom
   media_create_pad_link
   media_device_cleanup
   media_device_init
@@ -1251,15 +1157,12 @@
   memset
   __memset_io
   memweight
-<<<<<<<< HEAD:android/abi_gki_aarch64_vivo
   mii_check_media
   mii_ethtool_get_link_ksettings
   mii_ethtool_gset
   mii_ethtool_set_link_ksettings
   mii_link_ok
   mii_nway_restart
-========
->>>>>>>> google/android12-5.4-lts:android/abi_gki_aarch64_qcom
   mipi_dsi_create_packet
   mipi_dsi_dcs_set_display_brightness
   mipi_dsi_dcs_set_tear_off
@@ -1270,10 +1173,7 @@
   misc_register
   mmc_of_parse
   mmc_send_tuning
-<<<<<<<< HEAD:android/abi_gki_aarch64_vivo
   mmput
-========
->>>>>>>> google/android12-5.4-lts:android/abi_gki_aarch64_qcom
   mod_delayed_work_on
   mod_node_page_state
   mod_timer
@@ -1283,11 +1183,6 @@
   __msecs_to_jiffies
   msleep
   msleep_interruptible
-<<<<<<<< HEAD:android/abi_gki_aarch64_vivo
-========
-  msm_pinctrl_probe
-  msm_pinctrl_remove
->>>>>>>> google/android12-5.4-lts:android/abi_gki_aarch64_qcom
   __mutex_init
   mutex_is_locked
   mutex_lock
@@ -1323,11 +1218,6 @@
   __netlink_kernel_create
   netlink_kernel_release
   netlink_unicast
-<<<<<<<< HEAD:android/abi_gki_aarch64_vivo
-========
-  net_ratelimit
-  nf_conntrack_destroy
->>>>>>>> google/android12-5.4-lts:android/abi_gki_aarch64_qcom
   nla_memcpy
   __nla_parse
   nla_put_64bit
@@ -1535,15 +1425,12 @@
   phy_restore_page
   phy_save_page
   phy_set_mode_ext
-<<<<<<<< HEAD:android/abi_gki_aarch64_vivo
   phy_start
   phy_stop
   physvirt_offset
   phy_unregister_fixup_for_uid
   phy_write_mmd
   pid_task
-========
->>>>>>>> google/android12-5.4-lts:android/abi_gki_aarch64_qcom
   pinconf_generic_dt_node_to_map
   pinctrl_dev_get_drvdata
   pinctrl_get
@@ -1611,15 +1498,10 @@
   power_supply_get_drvdata
   power_supply_get_property
   power_supply_put
-<<<<<<<< HEAD:android/abi_gki_aarch64_vivo
   power_supply_register
   power_supply_reg_notifier
   power_supply_set_property
   power_supply_unregister
-========
-  power_supply_reg_notifier
-  power_supply_set_property
->>>>>>>> google/android12-5.4-lts:android/abi_gki_aarch64_qcom
   power_supply_unreg_notifier
   prandom_u32
   preempt_schedule
@@ -1733,11 +1615,7 @@
   regmap_field_update_bits_base
   __regmap_init
   regmap_irq_get_virq
-<<<<<<<< HEAD:android/abi_gki_aarch64_vivo
   regmap_multi_reg_write
-========
-  regmap_raw_read
->>>>>>>> google/android12-5.4-lts:android/abi_gki_aarch64_qcom
   regmap_read
   regmap_register_patch
   regmap_update_bits_base
@@ -1748,19 +1626,11 @@
   regulator_disable_deferred
   regulator_enable
   regulator_get
-<<<<<<<< HEAD:android/abi_gki_aarch64_vivo
-========
-  regulator_get_current_limit
->>>>>>>> google/android12-5.4-lts:android/abi_gki_aarch64_qcom
   regulator_get_drvdata
   regulator_get_mode
   regulator_get_voltage
   regulator_is_enabled
   regulator_is_supported_voltage
-<<<<<<<< HEAD:android/abi_gki_aarch64_vivo
-========
-  regulator_list_voltage
->>>>>>>> google/android12-5.4-lts:android/abi_gki_aarch64_qcom
   regulator_list_voltage_linear
   regulator_lock
   regulator_notifier_call_chain
@@ -1780,10 +1650,6 @@
   release_sock
   remap_pfn_range
   remap_vmalloc_range
-<<<<<<<< HEAD:android/abi_gki_aarch64_vivo
-========
-  remove_arg_zero
->>>>>>>> google/android12-5.4-lts:android/abi_gki_aarch64_qcom
   remove_proc_entry
   remove_wait_queue
   report_iommu_fault
@@ -1803,7 +1669,6 @@
   rfkill_init_sw_state
   rfkill_register
   rfkill_unregister
-<<<<<<<< HEAD:android/abi_gki_aarch64_vivo
   rndis_deregister
   rndis_free_response
   rndis_get_next_response
@@ -1823,13 +1688,6 @@
   rpmsg_send
   rpmsg_trysend
   rpmsg_unregister_device
-========
-  round_jiffies
-  rtc_class_close
-  rtc_class_open
-  rtc_read_time
-  __rtc_register_device
->>>>>>>> google/android12-5.4-lts:android/abi_gki_aarch64_qcom
   rtc_time64_to_tm
   rtc_tm_to_time64
   rtc_update_irq
@@ -1887,11 +1745,6 @@
   scsi_sense_desc_find
   scsi_unblock_requests
   sdev_prefix_printk
-<<<<<<<< HEAD:android/abi_gki_aarch64_vivo
-========
-  search_binary_handler
-  security_sock_graft
->>>>>>>> google/android12-5.4-lts:android/abi_gki_aarch64_qcom
   sdhci_add_host
   sdhci_enable_clk
   sdhci_get_property
@@ -1971,10 +1824,6 @@
   skb_tstamp_tx
   sk_free
   skip_spaces
-<<<<<<<< HEAD:android/abi_gki_aarch64_vivo
-========
-  smp_call_function
->>>>>>>> google/android12-5.4-lts:android/abi_gki_aarch64_qcom
   smp_call_function_single
   snd_ctl_add
   snd_ctl_boolean_mono_info
@@ -2157,20 +2006,10 @@
   thermal_cdev_update
   thermal_cooling_device_unregister
   thermal_of_cooling_device_register
-<<<<<<<< HEAD:android/abi_gki_aarch64_vivo
   thermal_zone_device_update
   thermal_zone_get_temp
   thermal_zone_get_zone_by_name
   time64_to_tm
-========
-  thermal_zone_device_register
-  thermal_zone_device_update
-  thermal_zone_get_temp
-  thermal_zone_get_zone_by_name
-  thermal_zone_of_sensor_register
-  thermal_zone_of_sensor_unregister
-  timer_unstable_counter_workaround
->>>>>>>> google/android12-5.4-lts:android/abi_gki_aarch64_qcom
   timespec64_to_jiffies
   _totalram_pages
   __trace_bprintk
@@ -2190,35 +2029,17 @@
   tty_flip_buffer_push
   __tty_insert_flip_char
   tty_insert_flip_string_fixed_flag
-<<<<<<<< HEAD:android/abi_gki_aarch64_vivo
   typec_altmode_get_partner
   typec_altmode_update_active
   typec_get_drvdata
   typec_partner_register_altmode
   typec_partner_set_identity
-========
-  typec_altmode_attention
-  typec_altmode_get_partner
-  typec_altmode_notify
-  typec_altmode_update_active
-  typec_altmode_vdm
-  typec_get_drvdata
-  typec_partner_register_altmode
->>>>>>>> google/android12-5.4-lts:android/abi_gki_aarch64_qcom
   typec_port_register_altmode
   typec_register_partner
   typec_register_port
   typec_set_data_role
-<<<<<<<< HEAD:android/abi_gki_aarch64_vivo
   typec_set_pwr_opmode
   typec_set_pwr_role
-========
-  typec_set_mode
-  typec_set_orientation
-  typec_set_pwr_opmode
-  typec_set_pwr_role
-  typec_set_vconn_role
->>>>>>>> google/android12-5.4-lts:android/abi_gki_aarch64_qcom
   typec_unregister_altmode
   typec_unregister_partner
   typec_unregister_port
@@ -2237,7 +2058,6 @@
   uart_update_timeout
   uart_write_wakeup
   __udelay
-<<<<<<<< HEAD:android/abi_gki_aarch64_vivo
   ufshcd_crypto_cap_find
   ufshcd_crypto_disable_spec
   ufshcd_crypto_enable_spec
@@ -2260,8 +2080,6 @@
   ufshcd_remove
   ufshcd_uic_hibern8_enter
   ufshcd_uic_hibern8_exit
-========
->>>>>>>> google/android12-5.4-lts:android/abi_gki_aarch64_qcom
   __uio_register_device
   uio_unregister_device
   unmap_mapping_range
@@ -2301,10 +2119,7 @@
   usb_asmedia_modifyflowcontrol
   usb_assign_descriptors
   usb_autopm_get_interface
-<<<<<<<< HEAD:android/abi_gki_aarch64_vivo
   usb_autopm_get_interface_async
-========
->>>>>>>> google/android12-5.4-lts:android/abi_gki_aarch64_qcom
   usb_autopm_get_interface_no_resume
   usb_autopm_put_interface
   usb_autopm_put_interface_async
@@ -2313,12 +2128,8 @@
   usb_clear_halt
   usb_composite_setup_continue
   usb_control_msg
-<<<<<<<< HEAD:android/abi_gki_aarch64_vivo
   __usb_create_hcd
   usb_create_shared_hcd
-========
-  usb_debug_root
->>>>>>>> google/android12-5.4-lts:android/abi_gki_aarch64_qcom
   usb_decode_ctrl
   usb_del_gadget_udc
   usb_deregister
@@ -2358,15 +2169,11 @@
   usb_get_current_frame_number
   usb_get_dev
   usb_get_dr_mode
-<<<<<<<< HEAD:android/abi_gki_aarch64_vivo
   usb_get_from_anchor
-========
->>>>>>>> google/android12-5.4-lts:android/abi_gki_aarch64_qcom
   usb_get_intf
   usb_get_maximum_speed
   usb_get_urb
   usb_gstrings_attach
-<<<<<<<< HEAD:android/abi_gki_aarch64_vivo
   usb_hcd_check_unlink_urb
   usb_hcd_end_port_resume
   usb_hcd_giveback_urb
@@ -2386,14 +2193,11 @@
   usb_hcd_unlink_urb_from_ep
   usb_hub_clear_tt_buffer
   usb_hub_find_child
-========
->>>>>>>> google/android12-5.4-lts:android/abi_gki_aarch64_qcom
   usb_ifnum_to_if
   usb_interface_id
   usb_kill_urb
   usb_lock_device_for_reset
   usb_match_one_id
-<<<<<<<< HEAD:android/abi_gki_aarch64_vivo
   usbnet_change_mtu
   usbnet_disconnect
   usbnet_get_drvinfo
@@ -2423,16 +2227,11 @@
   usbnet_write_cmd
   usbnet_write_cmd_async
   usbnet_write_cmd_nopm
-========
->>>>>>>> google/android12-5.4-lts:android/abi_gki_aarch64_qcom
   usb_os_desc_prepare_interf_dir
   usb_poison_urb
   usb_put_dev
   usb_put_function_instance
-<<<<<<<< HEAD:android/abi_gki_aarch64_vivo
   usb_put_hcd
-========
->>>>>>>> google/android12-5.4-lts:android/abi_gki_aarch64_qcom
   usb_put_intf
   usb_register_driver
   usb_register_notify
@@ -2500,14 +2299,10 @@
   v4l2_type_names
   vabits_actual
   vb2_buffer_done
-<<<<<<<< HEAD:android/abi_gki_aarch64_vivo
   vb2_common_vm_ops
   vb2_create_bufs
   vb2_create_framevec
   vb2_destroy_framevec
-========
-  vb2_create_bufs
->>>>>>>> google/android12-5.4-lts:android/abi_gki_aarch64_qcom
   vb2_dqbuf
   vb2_expbuf
   vb2_fop_mmap
@@ -2541,10 +2336,6 @@
   vchan_tx_desc_free
   vchan_tx_submit
   vfree
-<<<<<<<< HEAD:android/abi_gki_aarch64_vivo
-========
-  vfs_fsync
->>>>>>>> google/android12-5.4-lts:android/abi_gki_aarch64_qcom
   video_devdata
   video_device_alloc
   video_device_release
