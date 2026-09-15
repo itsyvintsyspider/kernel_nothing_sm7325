@@ -641,7 +641,6 @@ static int cqhci_request(struct mmc_host *mmc, struct mmc_request *mrq)
 	int tag = cqhci_tag(mrq);
 	struct cqhci_host *cq_host = mmc->cqe_private;
 	unsigned long flags;
-	u64 ice_ctx = 0;
 
 	if (!cq_host->enabled) {
 		pr_err("%s: cqhci: not enabled\n", mmc_hostname(mmc));
@@ -666,16 +665,7 @@ static int cqhci_request(struct mmc_host *mmc, struct mmc_request *mrq)
 	}
 
 	if (mrq->data) {
-		err = cqhci_crypto_get_ctx(cq_host, mrq, &ice_ctx);
-		if (err) {
-			pr_err("%s: failed to retrieve crypto ctx for tag %d\n",
-				mmc_hostname(mmc), tag);
-			return err;
-		}
-		task_desc = (__le64 __force *)get_desc(cq_host, tag);
-		cqhci_prep_task_desc(mrq, &data, 1);
-		*task_desc = cpu_to_le64(data);
-		cqhci_prep_crypto_desc(cq_host, task_desc, ice_ctx);
+		cqhci_prep_task_desc(mrq, cq_host, tag);
 
 		err = cqhci_prep_tran_desc(mrq, cq_host, tag);
 		if (err) {
