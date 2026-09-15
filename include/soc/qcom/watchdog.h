@@ -6,6 +6,8 @@
 #ifndef _SOC_QCOM_WATCHDOG_H_
 #define _SOC_QCOM_WATCHDOG_H_
 
+#define NR_IPI 8
+
 #ifdef CONFIG_QCOM_FORCE_WDOG_BITE_ON_PANIC
 #define WDOG_BITE_ON_PANIC 1
 #else

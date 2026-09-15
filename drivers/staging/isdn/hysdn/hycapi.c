@@ -658,7 +658,7 @@ hycapi_tx_capiget(hysdn_card *card)
 
 
 /**********************************************************
-int hycapi_init()
+int hycapi_init(void)
 
 attach the capi-driver to the kernel-capi.
 
