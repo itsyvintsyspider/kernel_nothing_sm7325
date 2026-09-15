@@ -1161,41 +1161,8 @@ static int qcom_scm_find_dload_address(struct device *dev, u64 *addr)
 
 	return 0;
 }
-#ifdef CONFIG_QCOM_RTIC
-static int __init scm_mem_protection_init(void)
-{
-	return scm_mem_protection_init_do(__scm ? __scm->dev : NULL);
-}
 
-early_initcall(scm_mem_protection_init);
-#endif
-
-#if IS_MODULE(CONFIG_QCOM_SCM)
-static void __exit qcom_scm_exit(void)
-{
-#if IS_ENABLED(CONFIG_QCOM_SCM_QCPE)
-	__qcom_scm_qcpe_exit();
-#endif
-	platform_driver_unregister(&qcom_scm_driver);
-	qtee_shmbridge_driver_exit();
-}
-module_exit(qcom_scm_exit);
-#endif
-
-	bool avail;
-	int ret = qcom_scm_clk_enable();
-
-	if (ret)
-		return ret;
-
-	avail = __qcom_scm_is_call_available(__scm->dev, QCOM_SCM_SVC_HDCP,
-						QCOM_SCM_CMD_HDCP);
-
-	qcom_scm_clk_disable();
-
-	return avail;
-	if (!__qcom_scm_is_call_available(__scm->dev, QCOM_SCM_SVC_PIL,
-					  QCOM_SCM_PAS_IS_SUPPORTED_CMD))
+/**
  * qcom_scm_ice_available() - Is the ICE key programming interface available?
  *
  * Return: true iff the SCM calls wrapped by qcom_scm_ice_invalidate_key() and
