@@ -48,9 +48,9 @@ static ssize_t write_deadlock_node(struct file *file, const char __user *buf, si
 	return count;
 }
 
-static const struct file_operations deadlock_test_proc_fops = {
-	.write		= write_deadlock_node,
-	.llseek		= noop_llseek,
+static const struct proc_ops deadlock_test_proc_fops = {
+	.proc_write	= write_deadlock_node,
+	.proc_lseek	= noop_llseek,
 };
 
 static int hungtask_test_run(void *args)
@@ -81,9 +81,9 @@ static ssize_t write_hungtask_node(struct file *file, const char __user *buf, si
 	return count;
 }
 
-static const struct file_operations hungtask_test_proc_fops = {
-	.write		= write_hungtask_node,
-	.llseek		= noop_llseek,
+static const struct proc_ops hungtask_test_proc_fops = {
+	.proc_write	= write_hungtask_node,
+	.proc_lseek	= noop_llseek,
 };
 
 int hungtask_test_init(struct proc_dir_entry *nt_stability_test_dir)
