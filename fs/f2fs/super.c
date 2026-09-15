@@ -4268,7 +4268,7 @@ reset_checkpoint:
 	f2fs_update_time(sbi, CP_TIME);
 	f2fs_update_time(sbi, REQ_TIME);
 	clear_sbi_flag(sbi, SBI_CP_DISABLED_QUICK);
-	if(F2FS_OPTION(sbi).inlinecrypt)
+	if (sbi->sb->s_flags & SB_INLINECRYPT)
 		nt_sbi = sbi;
 	return 0;
 
