@@ -1646,11 +1646,11 @@ static int modem_restart_open(struct inode *inode, struct file *file)
 	return single_open(file, modem_restart_show, inode->i_private);
 }
 
-static const struct file_operations modem_restart_fops = {
-	.open = modem_restart_open,
-	.read = seq_read,
-	.llseek = seq_lseek,
-	.release = single_release,
+static const struct proc_ops modem_restart_fops = {
+	.proc_open = modem_restart_open,
+	.proc_read = seq_read,
+	.proc_lseek = seq_lseek,
+	.proc_release = single_release,
 };
 #endif
 

@@ -65,10 +65,9 @@ static ssize_t alarm_logger_write(
 	return count;
 }
 
-static const struct file_operations alarm_logger_fops = {
-	.owner  = THIS_MODULE,
-	.read   = alarm_logger_read,
-	.write  = alarm_logger_write,
+static const struct proc_ops alarm_logger_fops = {
+	.proc_read   = alarm_logger_read,
+	.proc_write  = alarm_logger_write,
 };
 
 static ssize_t standby_logger_read(
@@ -98,10 +97,9 @@ static ssize_t standby_logger_write(
 	return count;
 }
 
-static const struct file_operations standby_logger_fops = {
-	.owner  = THIS_MODULE,
-	.read   = standby_logger_read,
-	.write  = standby_logger_write,
+static const struct proc_ops standby_logger_fops = {
+	.proc_read   = standby_logger_read,
+	.proc_write  = standby_logger_write,
 };
 
 static int noth_logger_helper_create_proc_node(struct noth_logger_helper_data *data)

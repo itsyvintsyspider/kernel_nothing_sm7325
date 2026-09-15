@@ -27,11 +27,11 @@ static int secure_state_open(struct inode *inode, struct file *file)
 	return single_open(file, secure_state_show, inode->i_private);
 }
 
-static const struct file_operations secure_state_fops = {
-	.open = secure_state_open,
-	.read = seq_read,
-	.llseek = seq_lseek,
-	.release = single_release,
+static const struct proc_ops secure_state_fops = {
+	.proc_open = secure_state_open,
+	.proc_read = seq_read,
+	.proc_lseek = seq_lseek,
+	.proc_release = single_release,
 };
 
 static int __init init_secure_state(void)

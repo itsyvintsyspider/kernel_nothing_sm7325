@@ -383,21 +383,12 @@ static int proc_shell_open(struct inode *inode, struct file *file)
 }
 
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 10, 0))
 static const struct proc_ops proc_shell_fops = {
 	.proc_open = proc_shell_open,
 	.proc_write = proc_shell_write,
 	.proc_read = seq_read,
 	.proc_release = single_release,
 };
-#else
-static const struct file_operations proc_shell_fops = {
-	.open = proc_shell_open,
-	.write = proc_shell_write,
-	.read = seq_read,
-	.release = single_release,
-};
-#endif
 
 static int __init slntc_shell_init(void)
 {

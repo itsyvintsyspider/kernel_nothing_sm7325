@@ -314,25 +314,25 @@ static int show_all_dma_task_open(struct inode *inode, struct file *file)
 	return single_open(file, dma_procs_debug_show, NULL);
 }
 
-static const struct file_operations show_all_tasks_fops = {
-	.open       = show_all_tasks_open,
-	.read       = seq_read,
-	.llseek     = seq_lseek,
-	.release    = single_release,
+static const struct proc_ops show_all_tasks_fops = {
+	.proc_open       = show_all_tasks_open,
+	.proc_read       = seq_read,
+	.proc_lseek      = seq_lseek,
+	.proc_release    = single_release,
 };
 
-static const struct file_operations show_all_dma_fops = {
-	.open       = show_all_dma_open,
-	.read       = seq_read,
-	.llseek     = seq_lseek,
-	.release    = single_release,
+static const struct proc_ops show_all_dma_fops = {
+	.proc_open       = show_all_dma_open,
+	.proc_read       = seq_read,
+	.proc_lseek      = seq_lseek,
+	.proc_release    = single_release,
 };
 
-static const struct file_operations show_all_task_dma_fops = {
-	.open       = show_all_dma_task_open,
-	.read       = seq_read,
-	.llseek     = seq_lseek,
-	.release    = single_release,
+static const struct proc_ops show_all_task_dma_fops = {
+	.proc_open       = show_all_dma_task_open,
+	.proc_read       = seq_read,
+	.proc_lseek      = seq_lseek,
+	.proc_release    = single_release,
 };
 
 static int __init nt_meminfo_init(void)
