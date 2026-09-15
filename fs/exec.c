@@ -1611,7 +1611,7 @@ int prepare_binprm(struct linux_binprm *bprm)
 	bprm_fill_uid(bprm);
 
 	/* fill in binprm security blob */
-	retval = security_bprm_set_creds(bprm);
+	retval = security_bprm_creds_for_exec(bprm);
 	if (retval)
 		return retval;
 	bprm->called_set_creds = 1;
