@@ -24,7 +24,11 @@
 	qupv3_0: qcom,qupv3_0_geni_se@9c0000 {
 		compatible = "qcom,qupv3-geni-se";
 		reg = <0x9c0000 0x2000>;
-		qcom,msm-bus,num-paths = <3>;
+		/* Same missing-legacy-property issue as qupv3_1 above. */
+		qcom,msm-bus,num-paths = <2>;
+		qcom,msm-bus,vectors-bus-ids =
+			<MASTER_QUP_CORE_0 SLAVE_QUP_CORE_0>,
+			<MASTER_QUP_0 SLAVE_EBI1>;
 		interconnect-names = "qup-core", "snoc-llcc", "qup-ddr";
 		interconnects =
 		<&clk_virt MASTER_QUP_CORE_0 &clk_virt SLAVE_QUP_CORE_0>,
@@ -365,7 +369,29 @@
 	qupv3_1: qcom,qupv3_1_geni_se@ac0000 {
 		compatible = "qcom,qupv3-geni-se";
 		reg = <0xac0000 0x2000>;
-		qcom,msm-bus,num-paths = <3>;
+		/*
+		 * drivers/platform/msm/msm-geni-se.c's geni_se_probe() (the
+		 * only driver that binds this node -- CONFIG_QCOM_GENI_SE,
+		 * the mainline/interconnect-framework alternative, isn't
+		 * enabled on this board) still reads the legacy
+		 * "qcom,msm-bus,vectors-bus-ids" property directly via
+		 * of_get_property(), not the modern "interconnects" binding
+		 * below. Without it, get_icc_paths() returns NULL, probe()
+		 * returns -EINVAL (permanently, not -EPROBE_DEFER), and
+		 * dev_set_drvdata() never runs -- every child serial engine
+		 * on this wrapper (both SPI buses AND the I2C bus) is then
+		 * stuck retrying geni_se_resources_init()'s EPROBE_DEFER
+		 * forever, since the thing they're waiting on never actually
+		 * finishes probing. Confirmed on a real device: this is the
+		 * exact cause of the Novatek touch controller (on
+		 * qupv3_se13_spi/qupv3_se14_spi, both children of this same
+		 * wrapper) never binding. bka (proven-bootable) has this
+		 * exact property with num-paths=2; restored to match.
+		 */
+		qcom,msm-bus,num-paths = <2>;
+		qcom,msm-bus,vectors-bus-ids =
+			<MASTER_QUP_CORE_1 SLAVE_QUP_CORE_1>,
+			<MASTER_QUP_1 SLAVE_EBI1>;
 		interconnect-names = "qup-core", "snoc-llcc", "qup-ddr";
 		interconnects =
 		<&clk_virt MASTER_QUP_CORE_1 &clk_virt SLAVE_QUP_CORE_1>,

@@ -60,6 +60,24 @@
 	#size-cells = <0>;
 	/delete-node/ focaltech@0;
 
+	/*
+	 * /delete-node/ above does not reliably propagate through this
+	 * board's overlay build (CONFIG_BUILD_ARM64_DT_OVERLAY=y --
+	 * out/.../dtbo.img packs 5000+ CAF reference-board fragments, and
+	 * node deletion across that fragment-merge pipeline isn't as
+	 * reliable as a plain property override). Confirmed on a real
+	 * device: focaltech@0 was still live alongside goodix-berlin@0 in
+	 * the booted devicetree (/proc/device-tree/soc/spi@a94000/ showed
+	 * both), so the SPI core registered focaltech@0 first and rejected
+	 * goodix-berlin@0 with "chipselect 0 already in use" -- the real
+	 * touchscreen never got a chance to probe. Explicitly disabling it
+	 * here is a plain property merge, which is reliable regardless of
+	 * which fragment the overlay tooling actually selects.
+	 */
+	focaltech@0 {
+		status = "disabled";
+	};
+
 	goodix-berlin@0 {
 		compatible = "goodix,gt9916S", "goodix,brl-d";
 		reg = <0>;

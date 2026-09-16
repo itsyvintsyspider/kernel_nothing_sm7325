@@ -19,6 +19,22 @@
 /*
  * "IKCFG_ST" and "IKCFG_ED" are used to extract the config data from
  * a binary kernel image or a module. See scripts/extract-ikconfig.
+ *
+ * ccache gotcha: this .incbin pulls in kernel/config_data.gz, but that
+ * path is inside an asm() string, so it never shows up in the compiler's
+ * -MD dependency output. ccache's cache key is computed purely from this
+ * file's own preprocessed content, so it has no way to know config_data.gz
+ * changed -- editing a defconfig fragment (even one that only affects
+ * IKCONFIG-visible symbols) does NOT bust the cache for configs.o, and
+ * ccache will keep serving a stale ikconfig blob forever even though
+ * kernel/Makefile's own Make dependency (configs.o: config_data.gz) is
+ * correct and every other build artifact (Image, boot.img, .config) looks
+ * genuinely fresh. Confirmed on a real device: /proc/config.gz kept
+ * reporting an old value after a defconfig-only change despite a byte-
+ * identical, provably fresh Image being flashed. If a future defconfig-
+ * only change needs to show up in /proc/config.gz and doesn't, touch this
+ * file (a real content change, not just mtime) to force a real ccache
+ * miss for configs.o.
  */
 asm (
 "	.pushsection .rodata, \"a\"		\n"

@@ -602,7 +602,8 @@ struct mmc_host {
 	bool			cqe_on;
 	/* Inline encryption support */
 #ifdef CONFIG_MMC_CRYPTO
-	struct blk_keyslot_manager ksm;
+	struct keyslot_manager	*ksm;
+	void *crypto_DO_NOT_USE[7];
 #endif
 
 	/* Host Software Queue support */

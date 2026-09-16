@@ -70,7 +70,8 @@ int fscrypt_select_encryption_impl(struct fscrypt_info *ci,
 {
 	const struct inode *inode = ci->ci_inode;
 	struct super_block *sb = inode->i_sb;
-	struct blk_crypto_config crypto_cfg;
+	enum blk_crypto_mode_num crypto_mode = ci->ci_mode->blk_crypto_mode;
+	unsigned int dun_bytes;
 	int num_devs;
 	struct request_queue **devs;
 	int i;
@@ -79,8 +80,8 @@ int fscrypt_select_encryption_impl(struct fscrypt_info *ci,
 	if (!S_ISREG(inode->i_mode))
 		return 0;
 
-	/* The crypto mode must have a blk-crypto counterpart */
-	if (ci->ci_mode->blk_crypto_mode == BLK_ENCRYPTION_MODE_INVALID)
+	/* blk-crypto must implement the needed encryption algorithm */
+	if (crypto_mode == BLK_ENCRYPTION_MODE_INVALID)
 		return 0;
 
 	/* The filesystem must be mounted with -o inlinecrypt */
@@ -101,21 +102,30 @@ int fscrypt_select_encryption_impl(struct fscrypt_info *ci,
 		return 0;
 
 	/*
-	 * On all the filesystem's devices, blk-crypto must support the crypto
-	 * configuration that the file would use.
+	 * The needed encryption settings must be supported either by
+	 * blk-crypto-fallback, or by hardware on all the filesystem's devices.
 	 */
-	crypto_cfg.crypto_mode = ci->ci_mode->blk_crypto_mode;
-	crypto_cfg.data_unit_size = sb->s_blocksize;
-	crypto_cfg.dun_bytes = fscrypt_get_dun_bytes(ci);
-	crypto_cfg.is_hw_wrapped = is_hw_wrapped_key;
+
+	if (IS_ENABLED(CONFIG_BLK_INLINE_ENCRYPTION_FALLBACK) &&
+	    !is_hw_wrapped_key) {
+		ci->ci_inlinecrypt = true;
+		return 0;
+	}
+
 	num_devs = fscrypt_get_num_devices(sb);
-	devs = kmalloc_array(num_devs, sizeof(*devs), GFP_KERNEL);
+	devs = kmalloc_array(num_devs, sizeof(*devs), GFP_NOFS);
 	if (!devs)
 		return -ENOMEM;
 	fscrypt_get_devices(sb, num_devs, devs);
 
+	dun_bytes = fscrypt_get_dun_bytes(ci);
+
 	for (i = 0; i < num_devs; i++) {
-		if (!blk_crypto_config_supported(devs[i], &crypto_cfg))
+		if (!keyslot_manager_crypto_mode_supported(devs[i]->ksm,
+							   crypto_mode,
+							   dun_bytes,
+							   sb->s_blocksize,
+							   is_hw_wrapped_key))
 			goto out_free_devs;
 	}
 
@@ -174,8 +184,11 @@ int fscrypt_prepare_inline_crypt_key(struct fscrypt_prepared_key *prep_key,
 		}
 		queue_refs++;
 
-		err = blk_crypto_start_using_key(&blk_key->base,
-						 blk_key->devs[i]);
+		err = blk_crypto_start_using_mode(crypto_mode,
+						  fscrypt_get_dun_bytes(ci),
+						  sb->s_blocksize,
+						  is_hw_wrapped,
+						  blk_key->devs[i]);
 		if (err) {
 			fscrypt_err(inode,
 				    "error %d starting to use blk-crypto", err);
@@ -219,12 +232,13 @@ int fscrypt_derive_raw_secret(struct super_block *sb,
 {
 	struct request_queue *q;
 
-	q = bdev_get_queue(sb->s_bdev);
+	q = sb->s_bdev->bd_queue;
 	if (!q->ksm)
 		return -EOPNOTSUPP;
 
-	return blk_ksm_derive_raw_secret(q->ksm, wrapped_key, wrapped_key_size,
-					 raw_secret, raw_secret_size);
+	return keyslot_manager_derive_raw_secret(q->ksm,
+						 wrapped_key, wrapped_key_size,
+						 raw_secret, raw_secret_size);
 }
 
 bool __fscrypt_inode_uses_inline_crypto(const struct inode *inode)

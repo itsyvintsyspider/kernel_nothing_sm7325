@@ -24,6 +24,7 @@
 #include <linux/list.h>
 #include <linux/ioctl.h>
 #include <linux/wait.h>
+#include <linux/compat.h>
 #include "goodix_ts_core.h"
 
 #define GOODIX_TOOLS_NAME		"gtp_tools"

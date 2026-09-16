@@ -115,4 +115,12 @@ obj-$(CONFIG_TOUCHSCREEN_FTS)	+= focaltech_touch/
 obj-$(CONFIG_TOUCHSCREEN_SYNAPTICS_TCM)	+= synaptics_tcm/
 obj-$(CONFIG_TOUCHSCREEN_SYNAPTICS_DSX) += synaptics_dsx/
 obj-$(CONFIG_TOUCHSCREEN_NT36XXX)	+= nt36xxx/
+# Missing from the original NothingOSS merge (drivers/input/touchscreen/Kconfig
+# sources goodix_berlin_driver/Kconfig, and CONFIG_TOUCHSCREEN_GOODIX_BRL is
+# correctly =y in spacewar.config, but nothing ever told Kbuild to descend into
+# the directory -- confirmed via a real device: this is the actual reason the
+# Goodix touch IC (goodix-berlin@0) never had a driver to bind to at all,
+# independent of and in addition to the SPI chipselect conflict fixed
+# elsewhere in this tree's devicetree.
+obj-$(CONFIG_TOUCHSCREEN_GOODIX_BRL)	+= goodix_berlin_driver/
 

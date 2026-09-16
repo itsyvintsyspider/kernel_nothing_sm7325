@@ -673,7 +673,6 @@ static int ufs_qcom_hce_enable_notify(struct ufs_hba *hba,
 		/* check if UFS PHY moved from DISABLED to HIBERN8 */
 		err = ufs_qcom_check_hibern8(hba);
 		ufs_qcom_enable_hw_clk_gating(hba);
-		ufs_qcom_ice_enable(host);
 		break;
 	default:
 		dev_err(hba->dev, "%s: invalid status %d\n", __func__, status);
@@ -1207,10 +1206,6 @@ static int ufs_qcom_resume(struct ufs_hba *hba, enum ufs_pm_op pm_op)
 		ufs_qcom_enable_vreg(hba->dev, host->vccq_parent);
 
 	err = ufs_qcom_enable_lane_clks(host);
-	if (err)
-		return err;
-
-	err = ufs_qcom_ice_resume(host);
 	if (err)
 		return err;
 
@@ -1927,6 +1922,13 @@ static void ufs_qcom_advertise_quirks(struct ufs_hba *hba)
 
 	if (host->disable_lpm)
 		hba->quirks |= UFSHCD_QUIRK_BROKEN_AUTO_HIBERN8;
+
+	/*
+	 * Inline crypto is currently broken with ufs-qcom at least because the
+	 * device tree doesn't include the crypto registers.  There are likely
+	 * to be other issues that will need to be addressed too.
+	 */
+	hba->quirks |= UFSHCD_QUIRK_BROKEN_CRYPTO;
 }
 
 static void ufs_qcom_set_caps(struct ufs_hba *hba)
@@ -2862,10 +2864,6 @@ static int ufs_qcom_init(struct ufs_hba *hba)
 	ufs_qcom_set_caps(hba);
 	ufs_qcom_advertise_quirks(hba);
 
-	err = ufs_qcom_ice_init(host);
-	if (err)
-		goto out_variant_clear;
-
 	ufs_qcom_set_bus_vote(hba, true);
 	/* enable the device ref clock for HS mode*/
 	if (ufshcd_is_hs_mode(&hba->pwr_info))
@@ -3556,7 +3554,6 @@ static const struct ufs_hba_variant_ops ufs_hba_qcom_vops = {
 #if defined(CONFIG_SCSI_UFSHCD_QTI)
 	.fixup_dev_quirks       = ufs_qcom_fixup_dev_quirks,
 #endif
-	.program_key		= ufs_qcom_ice_program_key,
 };
 
 /**

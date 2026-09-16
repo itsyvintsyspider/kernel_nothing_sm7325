@@ -228,8 +228,24 @@ static int brl_power_on(struct goodix_ts_core *cd, bool on)
 			}
 		}
 		usleep_range(15000, 15100);
+		/*
+		 * A bare gpio_direction_output(reset_gpio, 1) here, with no
+		 * prior LOW assert and only a 4ms wait before the SPI
+		 * handshake, left the touch IC's own boot firmware nowhere
+		 * near ready: brl_dev_confirm()'s write/read-back loop got
+		 * the same wrong constant byte pattern on every one of its
+		 * 3 retries, never converging -- confirmed on a real device.
+		 * Willay24's techpack/touch/goodix_berlin_driver/goodix_brl_
+		 * hw.c (confirmed working) does an explicit reset pulse
+		 * (LOW, hold, HIGH) and waits the full
+		 * GOODIX_NORMAL_RESET_DELAY_MS (100ms) *before* attempting
+		 * the handshake, not after a confirm that can never succeed
+		 * without it. Matched that ordering here.
+		 */
+		gpio_direction_output(reset_gpio, 0);
+		usleep_range(15000, 15100);
 		gpio_direction_output(reset_gpio, 1);
-		usleep_range(4000, 4100);
+		msleep(GOODIX_NORMAL_RESET_DELAY_MS);
 		ret = brl_dev_confirm(cd);
 		if (ret < 0)
 			goto power_off;
@@ -237,7 +253,6 @@ static int brl_power_on(struct goodix_ts_core *cd, bool on)
 		if (ret < 0)
 			goto power_off;
 
-		msleep(GOODIX_NORMAL_RESET_DELAY_MS);
 		return 0;
 	}
 

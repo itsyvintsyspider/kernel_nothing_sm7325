@@ -1336,6 +1336,9 @@ static int dp_display_process_hpd_low(struct dp_display_private *dp)
 	return rc;
 }
 
+/* forward decl: defined further down, called here on real cable connect */
+static int dp_display_init_aux_switch(struct dp_display_private *dp);
+
 static int dp_display_usbpd_configure_cb(struct device *dev)
 {
 	int rc = 0;
@@ -1353,7 +1356,11 @@ static int dp_display_usbpd_configure_cb(struct device *dev)
 	}
 
 	if (!dp->debug->sim_mode && !dp->parser->no_aux_switch
-	    && !dp->parser->gpio_aux_switch) {
+	    && !dp->parser->gpio_aux_switch && dp->aux_switch_node) {
+		rc = dp_display_init_aux_switch(dp);
+		if (rc)
+			return rc;
+
 		rc = dp->aux->aux_switch(dp->aux, true, dp->hpd->orientation);
 		if (rc)
 			return rc;
@@ -3574,12 +3581,6 @@ static int dp_display_probe(struct platform_device *pdev)
 	dp->name = "drm_dp";
 
 	memset(&dp->mst, 0, sizeof(dp->mst));
-
-	rc = dp_display_init_aux_switch(dp);
-	if (rc) {
-		rc = -EPROBE_DEFER;
-		goto error;
-	}
 
 	rc = dp_display_create_workqueue(dp);
 	if (rc) {

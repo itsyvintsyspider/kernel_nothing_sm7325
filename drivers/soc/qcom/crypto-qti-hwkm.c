@@ -82,15 +82,20 @@ int crypto_qti_program_key(struct crypto_vops_qti_entry *ice_entry,
 		return -EINVAL;
 	}
 
+	pr_info("NOX-DEBUG: crypto_qti_program_key entered, slot=%d, about to enable clocks\n", slot);
 	err_program = qti_hwkm_clocks(true);
 	if (err_program) {
 		pr_err("%s: Error enabling clocks %d\n", __func__,
 							err_program);
 		return err_program;
 	}
+	pr_info("NOX-DEBUG: clocks enabled ok, INIT_DONE=%d\n",
+		!!(ice_entry->flags & QTI_HWKM_INIT_DONE));
 
 	if ((ice_entry->flags & QTI_HWKM_INIT_DONE) != QTI_HWKM_INIT_DONE) {
+		pr_info("NOX-DEBUG: about to qti_hwkm_init\n");
 		err_program = qti_hwkm_init(ice_entry->hwkm_slave_mmio_base);
+		pr_info("NOX-DEBUG: qti_hwkm_init returned %d\n", err_program);
 		if (err_program) {
 			pr_err("%s: Error with HWKM init %d\n", __func__,
 								err_program);
@@ -101,7 +106,9 @@ int crypto_qti_program_key(struct crypto_vops_qti_entry *ice_entry,
 	}
 
 	//Failsafe, clear GP_KEYSLOT incase it is not empty for any reason
+	pr_info("NOX-DEBUG: about to evict GP_KEYSLOT (failsafe)\n");
 	err_clear = crypto_qti_hwkm_evict_slot(GP_KEYSLOT, false);
+	pr_info("NOX-DEBUG: evict GP_KEYSLOT returned %d\n", err_clear);
 	if (err_clear && (err_clear != SLOT_EMPTY_ERROR)) {
 		pr_err("%s: Error clearing ICE slot %d, err %d\n",
 			__func__, GP_KEYSLOT, err_clear);
@@ -123,7 +130,9 @@ int crypto_qti_program_key(struct crypto_vops_qti_entry *ice_entry,
 				cmd_unwrap.unwrap.sz);
 	}
 
+	pr_info("NOX-DEBUG: about to qti_hwkm_handle_cmd(KEY_UNWRAP_IMPORT)\n");
 	err_program = qti_hwkm_handle_cmd(&cmd_unwrap, &rsp_unwrap);
+	pr_info("NOX-DEBUG: KEY_UNWRAP_IMPORT returned %d\n", err_program);
 	if (err_program) {
 		pr_err("%s: Error with key unwrap %d\n", __func__,
 							err_program);
@@ -132,8 +141,10 @@ int crypto_qti_program_key(struct crypto_vops_qti_entry *ice_entry,
 	}
 
 	//Failsafe, clear ICE keyslot incase it is not empty for any reason
+	pr_info("NOX-DEBUG: about to evict ICE slot (failsafe)\n");
 	err_clear = crypto_qti_hwkm_evict_slot(KEYMANAGER_ICE_MAP_SLOT(slot),
 						true);
+	pr_info("NOX-DEBUG: evict ICE slot returned %d\n", err_clear);
 	if (err_clear && (err_clear != SLOT_EMPTY_ERROR)) {
 		pr_err("%s: Error clearing ICE slot %d, err %d\n",
 			__func__, KEYMANAGER_ICE_MAP_SLOT(slot), err_clear);
@@ -161,7 +172,9 @@ int crypto_qti_program_key(struct crypto_vops_qti_entry *ice_entry,
 	/* Make sure CFGE is cleared */
 	wmb();
 
+	pr_info("NOX-DEBUG: about to qti_hwkm_handle_cmd(SYSTEM_KDF)\n");
 	err_program = qti_hwkm_handle_cmd(&cmd_kdf, &rsp_kdf);
+	pr_info("NOX-DEBUG: SYSTEM_KDF returned %d\n", err_program);
 	if (err_program) {
 		pr_err("%s: Error programming key %d, slot %d\n", __func__,
 						err_program, slot);
@@ -175,6 +188,7 @@ int crypto_qti_program_key(struct crypto_vops_qti_entry *ice_entry,
 	}
 
 	err_clear = crypto_qti_hwkm_evict_slot(GP_KEYSLOT, false);
+	pr_info("NOX-DEBUG: final GP_KEYSLOT evict returned %d\n", err_clear);
 	if (err_clear) {
 		pr_err("%s: Error unwrapped slot clear %d\n", __func__,
 							err_clear);
@@ -189,6 +203,7 @@ int crypto_qti_program_key(struct crypto_vops_qti_entry *ice_entry,
 
 	qti_hwkm_clocks(false);
 
+	pr_info("NOX-DEBUG: crypto_qti_program_key success, returning %d\n", err_program);
 	return err_program;
 }
 EXPORT_SYMBOL(crypto_qti_program_key);

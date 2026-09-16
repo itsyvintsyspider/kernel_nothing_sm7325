@@ -155,6 +155,19 @@ msm_drm-$(CONFIG_MSM_SDE_ROTATOR) += ../rotator/sde_rotator_dev.o \
 	../rotator/sde_rotator_r1_debug.o \
 	../rotator/sde_rotator_r3_debug.o
 
-obj-$(CONFIG_DISPLAY_BUILD)	+= msm_drm.o
+# CONFIG_DISPLAY_BUILD isn't a real Kconfig symbol -- it's a Makefile-only
+# variable techpack/display/Makefile force-exports (=m) from lahainadisp.conf.
+# That export correctly reaches this file's scope (confirmed via debug
+# prints), so obj-$(CONFIG_DISPLAY_BUILD) does correctly resolve to obj-m --
+# but kernel.mk's own module-install pipeline only ever runs `make modules`
+# when it finds a genuine `=m` line in the literal .config text, and since
+# CONFIG_DISPLAY_BUILD never goes through Kconfig, it never appears there.
+# This board's .config has zero real =m symbols anywhere (see
+# spacewar.config's own notes on the flattened lahaina-qgki_defconfig), so
+# `make modules` never gets invoked and msm_drm.o -- despite being fully,
+# correctly gated internally -- never actually gets compiled. Force built-in
+# instead, matching the same "inline, no vendor_dlkm" architecture every
+# other driver on this tree already uses.
+obj-y	+= msm_drm.o
 
 obj-$(CONFIG_DRM_FBDEV_EMULATION) += msm_fbdev.o

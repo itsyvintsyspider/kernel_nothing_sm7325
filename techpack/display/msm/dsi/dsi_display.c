@@ -6087,8 +6087,22 @@ int dsi_display_dev_probe(struct platform_device *pdev)
 
 	platform_set_drvdata(pdev, display);
 
-	/* initialize display in firmware callback */
-	if (!(boot_displays[DSI_PRIMARY].boot_disp_en ||
+	/*
+	 * initialize display in firmware callback -- optional async path that
+	 * lets a board override panel DSI properties via a "dsi_prop"/
+	 * "dsi_prop_sec" firmware blob instead of the DTS. This board ships
+	 * no such blob (falls through to "no firmware available, fallback to
+	 * device node" in dsi_display_firmware_display() either way), and
+	 * that async completion callback has no path back to the driver
+	 * core if dsi_display_init() inside it returns -EPROBE_DEFER (e.g.
+	 * racing mdss_dsi0's own probe during early built-in init) -- the
+	 * platform_driver .probe() call above it already returned success,
+	 * so the failure is just silently dropped with no retry, ever.
+	 * Force the synchronous path below instead: a real -EPROBE_DEFER
+	 * returned from .probe() correctly engages the standard kernel
+	 * deferred-probe retry mechanism.
+	 */
+	if (false && !(boot_displays[DSI_PRIMARY].boot_disp_en ||
 			boot_displays[DSI_SECONDARY].boot_disp_en) &&
 			IS_ENABLED(CONFIG_DSI_PARSER) &&
 			!display->trusted_vm_env) {
