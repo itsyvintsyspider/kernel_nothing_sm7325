@@ -8,6 +8,19 @@
 
 #include <linux/types.h>
 
+/*
+ * Real msm_gpio_get_pin_address() (TLMM register range lookup for a
+ * given GPIO, used by qts_core's trusted-touch VM memory lending) has
+ * no implementation anywhere in our CLO merges at this tag -- stub
+ * fails cleanly, matching the rest of the trusted-touch stub chain.
+ */
+struct resource;
+static inline bool msm_gpio_get_pin_address(unsigned int gpio,
+		struct resource *res)
+{
+	return false;
+}
+
 /* APIS to access qup_i3c registers */
 int msm_qup_write(u32 mode, u32 val);
 int msm_qup_read(u32 mode);

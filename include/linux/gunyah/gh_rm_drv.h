@@ -45,6 +45,7 @@ enum gh_vm_names {
 
 #define GH_RM_NOTIF_MEM_SHARED			0x1
 #define GH_RM_NOTIF_MEM_RELEASED		0x2
+#define GH_RM_NOTIF_VM_IRQ_RELEASED		0x3
 
 struct gh_acl_entry {
 	gh_vmid_t vmid;
