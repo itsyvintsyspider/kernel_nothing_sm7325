@@ -28,6 +28,14 @@ enum panel_event_notifier_client {
 	PANEL_EVENT_NOTIFIER_CLIENT_MAX,
 };
 
+/*
+ * drm_panel.h already #defines DRM_PANEL_EVENT_BLANK (0x01) for its
+ * own, older blank-notifier chain -- undef so our enum below (the
+ * newer panel_event_notifier API's distinct event-type namespace,
+ * which just happens to share this one name) can use the identifier.
+ */
+#undef DRM_PANEL_EVENT_BLANK
+
 enum panel_event_notification_type {
 	DRM_PANEL_EVENT_NONE,
 	DRM_PANEL_EVENT_BLANK,

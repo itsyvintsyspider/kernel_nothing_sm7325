@@ -22,7 +22,6 @@
 #include <linux/dma-mapping.h>
 #include <linux/module.h>
 #include <linux/platform_device.h>
-#include "linux/gunyah/gh_msgq.h"
 #include "linux/gunyah/gh_rm_drv.h"
 #include <linux/gunyah/gh_irq_lend.h>
 #include <linux/gunyah/gh_mem_notifier.h>
