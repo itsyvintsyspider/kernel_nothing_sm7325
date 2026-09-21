@@ -12,14 +12,6 @@
  * of the licence, or (at your option) any later version.
  */
 #define _GNU_SOURCE
-/*
- * ENGINE_by_id() and friends are OSSL_DEPRECATEDIN_3_0 -- on a host with
- * OpenSSL 3.x, their prototypes are hidden entirely unless we opt into
- * pre-3.0 API visibility, which otherwise makes them implicitly-int
- * undeclared functions (real compile error, not just a deprecation
- * warning). The PKCS#11 ENGINE path itself is still real, just old API.
- */
-#define OPENSSL_API_COMPAT 0x10100000L
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -127,6 +119,7 @@ int main(int argc, char **argv)
 		fclose(f);
 		exit(0);
 	} else if (!strncmp(cert_src, "pkcs11:", 7)) {
+#ifndef OPENSSL_IS_BORINGSSL
 		ENGINE *e;
 		struct {
 			const char *cert_id;
@@ -149,6 +142,16 @@ int main(int argc, char **argv)
 		ENGINE_ctrl_cmd(e, "LOAD_CERT_CTRL", 0, &parms, NULL, 1);
 		ERR(!parms.cert, "Get X.509 from PKCS#11");
 		write_cert(parms.cert);
+#else
+		/*
+		 * BoringSSL's <openssl/engine.h> only carries the
+		 * ENGINE_new()/ENGINE_free() method-registration API - it
+		 * never implemented PKCS#11 ENGINE loading, so this build
+		 * has no way to honor a pkcs11: cert source.
+		 */
+		ERR(1, "pkcs11: certificate sources require OpenSSL's ENGINE API, "
+		       "not available with this BoringSSL host toolchain");
+#endif
 	} else {
 		BIO *b;
 		X509 *x509;
