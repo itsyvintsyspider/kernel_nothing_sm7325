@@ -3,6 +3,7 @@
 #
 config TOUCHSCREEN_GOODIX_BRL
 	tristate "Goodix berlin touchscreen"
+	select QTS
 	help
 	  Say Y here if you have a Goodix berlin series touch controller
 	  to your system.

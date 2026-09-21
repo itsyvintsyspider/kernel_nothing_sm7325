@@ -1,0 +1,10 @@
+#
+# Qualcomm Touch Solution (QTS) common vendor helper
+#
+config QTS
+	bool
+	help
+	  Common vendor-registration helper used by touch panel drivers
+	  (e.g. Goodix Berlin) to hook into the shared touch bus
+	  negotiator / TUI framework. Selected automatically by drivers
+	  that need it; has no user-visible prompt.
