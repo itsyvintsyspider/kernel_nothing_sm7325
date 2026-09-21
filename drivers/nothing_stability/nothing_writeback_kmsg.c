@@ -191,7 +191,7 @@ int __write_buf_to_target_partition(struct file *target_partition_file, void *he
 	return 0;
 }
 
-struct block_device *get_target_partition_block_device()
+struct block_device *get_target_partition_block_device(void)
 {
 	struct block_device *bdev = NULL;
 	int retry_wait_for_device = RETRY_COUNT_FOR_GET_DEV_T;
