@@ -237,6 +237,14 @@ config ARCH_YUPIK
 	  kernel that runs on this chipset or if you are unsure,
 	  say 'N' here.
 
+config NOTHING_SPACEWAR
+	bool "Enable Nothing Phone (1) Spacewar device tree"
+	depends on ARCH_QCOM && ARCH_YUPIK
+	select NOTHING
+	help
+	  Enable the Nothing Phone (1) Spacewar device-tree overlay
+	  for the Yupik platform.
+
 config ARCH_SA8155
 	bool "Enable Support for Qualcomm Technologies, Inc. SA8155"
 	depends on ARCH_QCOM

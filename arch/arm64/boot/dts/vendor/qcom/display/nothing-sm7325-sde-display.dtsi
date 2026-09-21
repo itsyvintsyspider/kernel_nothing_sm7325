@@ -1,0 +1,106 @@
+// Regulator/GPIO wiring adapted for Nothing Phone (1) "spacewar" (SM7325 Yupik).
+//
+
+#include "dsi-panel-nothing-m20-36-02-0a-dsc-vid.dtsi"
+#include "dsi-panel-nothing-m20-42-0d-0b-dsc-vid.dtsi"
+
+&soc {
+	dsi_panel_pwr_supply_nothing_m20: dsi_panel_pwr_supply_nothing_m20 {
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		qcom,panel-supply-entry@0 {
+			reg = <0>;
+			qcom,supply-name = "vddio";
+			qcom,supply-min-voltage = <1800000>;
+			qcom,supply-max-voltage = <1800000>;
+			qcom,supply-enable-load = <60700>;
+			qcom,supply-disable-load = <80>;
+			qcom,supply-post-on-sleep = <10>;
+			qcom,supply-pre-off-sleep = <2>;
+		};
+
+		qcom,panel-supply-entry@1 {
+			reg = <1>;
+			qcom,supply-name = "dvdd";
+			qcom,supply-min-voltage = <1230000>;
+			qcom,supply-max-voltage = <1230000>;
+			qcom,supply-enable-load = <60700>;
+			qcom,supply-disable-load = <80>;
+			qcom,supply-post-on-sleep = <10>;
+			qcom,supply-pre-off-sleep = <1>;
+		};
+
+		qcom,panel-supply-entry@2 {
+			reg = <2>;
+			qcom,supply-name = "vdd";
+			qcom,supply-min-voltage = <3000000>;
+			qcom,supply-max-voltage = <3000000>;
+			qcom,supply-enable-load = <10000>;
+			qcom,supply-disable-load = <0>;
+			qcom,supply-post-on-sleep = <10>;
+			qcom,supply-pre-off-sleep = <1>;
+		};
+	};
+
+	dsi_panel_pwr_supply_nothing_m20_0b: dsi_panel_pwr_supply_nothing_m20_0b {
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		qcom,panel-supply-entry@0 {
+			reg = <0>;
+			qcom,supply-name = "vddio";
+			qcom,supply-min-voltage = <1800000>;
+			qcom,supply-max-voltage = <1800000>;
+			qcom,supply-enable-load = <60700>;
+			qcom,supply-disable-load = <80>;
+			qcom,supply-post-on-sleep = <10>;
+			qcom,supply-pre-off-sleep = <2>;
+		};
+
+		qcom,panel-supply-entry@1 {
+			reg = <1>;
+			qcom,supply-name = "vdd";
+			qcom,supply-min-voltage = <3000000>;
+			qcom,supply-max-voltage = <3000000>;
+			qcom,supply-enable-load = <10000>;
+			qcom,supply-disable-load = <0>;
+			qcom,supply-post-on-sleep = <10>;
+			qcom,supply-pre-off-sleep = <1>;
+		};
+
+		qcom,panel-supply-entry@2 {
+			reg = <2>;
+			qcom,supply-name = "dvdd";
+			qcom,supply-min-voltage = <1250000>;
+			qcom,supply-max-voltage = <1250000>;
+			qcom,supply-enable-load = <60700>;
+			qcom,supply-disable-load = <80>;
+			qcom,supply-post-on-sleep = <10>;
+			qcom,supply-pre-off-sleep = <1>;
+		};
+	};
+};
+
+&dsi_nothing_m20_36_02_0a_dsc_vid {
+	qcom,panel-supply-entries = <&dsi_panel_pwr_supply_nothing_m20>;
+	qcom,platform-te-gpio = <&tlmm 80 0>;
+	qcom,platform-reset-gpio = <&tlmm 44 0>;
+};
+
+&dsi_nothing_m20_42_0d_0b_dsc_vid {
+	qcom,panel-supply-entries = <&dsi_panel_pwr_supply_nothing_m20_0b>;
+	qcom,platform-te-gpio = <&tlmm 80 0>;
+	qcom,platform-reset-gpio = <&tlmm 44 0>;
+};
+
+// The dsi-display driver resolves each "qcom,supply-name" entry (vddio,
+// dvdd, vdd) above to a "<name>-supply" phandle property on the DSI
+// *controller* node (&sde_dsi), not on the panel node itself. The board
+// overlay (nothing-spacewar-sm7325-overlay.dts) already sets
+// vddio-supply = <&L12C> and vdd-supply = <&L13C> on &sde_dsi for the
+// stock rm692e5/r66451 panels -- those match the M20 panel's needs
+// exactly, so only the missing dvdd rail needs to be added here.
+&sde_dsi {
+	dvdd-supply = <&L16B>;
+};

@@ -1,0 +1,137 @@
+// nothing-spacewar-audio-overlay.dtsi
+// Nothing Phone (1) "spacewar" audio — SM7325 (Yupik)
+// Speakers: NXP tfa98xx stereo pair on i2c-1 (qupv3_se2_i2c, 0x988000)
+// Haptics:  pm8350b HV haptics + swr-haptics (audio-coupled)
+
+/* ---- disable unused codecs/macros ---- */
+&wsa883x_0221 { status = "disabled"; };
+
+&wsa883x_0222 {
+	qcom,spkr-sd-n-node = <&wsa_spkr_en1>;
+	status = "disabled";
+};
+
+&wsa_macro { status = "disabled"; };
+
+&wcd937x_codec { status = "disabled"; };
+&wcd937x_rx_slave { status = "disabled"; };
+&wcd937x_tx_slave { status = "disabled"; };
+
+/* ---- enable what we actually have ---- */
+&wcd938x_codec { status = "okay"; };
+&wcd938x_rx_slave { status = "okay"; };
+&wcd938x_tx_slave { status = "okay"; };
+
+&swr_haptics {
+	status = "okay";
+	swr-slave-supply = <&hap_swr_slave_reg>;
+};
+
+&bolero { qcom,num-macros = <3>; };
+
+/* ---- tfa98xx smart amps: speakers are on PRIMARY MI2S RX ----
+ * CPU dai "msm-dai-q6-mi2s.0" (see techpack/audio/asoc/msm_dailink.h: pri_mi2s_rx)
+ * Addresses/channels verified against live device (i2c-1 = 0x988000).
+ */
+&qupv3_se2_i2c {
+	status = "okay";
+
+	tfa98xx_34: tfa98xx@34 {
+		compatible = "tfa,tfa98xx";
+		reg = <0x34>;
+		reset-gpio = <&tlmm 101 0>;
+		status = "okay";
+	};
+
+	tfa98xx_35: tfa98xx@35 {
+		compatible = "tfa,tfa98xx";
+		reg = <0x35>;
+		status = "okay";
+	};
+};
+
+/*     sound card     */
+&yupik_snd {
+	qcom,model = "lahaina-yupikqrd-snd-card";
+
+	/* ensure the MI2S backend links exist even with a custom dtbo */
+	qcom,mi2s-audio-intf = <1>;
+
+	qcom,audio-routing =
+		"AMIC1", "Analog Mic1",
+		"Analog Mic1", "MIC BIAS1",
+		"AMIC2", "Analog Mic2",
+		"Analog Mic2", "MIC BIAS2",
+		"AMIC3", "Analog Mic3",
+		"Analog Mic3", "MIC BIAS1",
+		"AMIC4", "Analog Mic4",
+		"Analog Mic4", "MIC BIAS1",
+		"AMIC5", "Analog Mic5",
+		"Analog Mic5", "MIC BIAS4",
+		"TX DMIC0", "Digital Mic0",
+		"Digital Mic0", "MIC BIAS1",
+		"TX DMIC1", "Digital Mic1",
+		"Digital Mic1", "MIC BIAS1",
+		"TX DMIC2", "Digital Mic2",
+		"Digital Mic2", "MIC BIAS3",
+		"TX DMIC3", "Digital Mic3",
+		"Digital Mic3", "MIC BIAS3",
+		"TX DMIC4", "Digital Mic4",
+		"Digital Mic4", "MIC BIAS4",
+		"TX DMIC5", "Digital Mic5",
+		"Digital Mic5", "MIC BIAS4",
+		"IN1_HPHL", "HPHL_OUT",
+		"IN2_HPHR", "HPHR_OUT",
+		"IN3_AUX", "AUX_OUT",
+		"HAP_IN", "PCM_OUT",
+		"RX_TX DEC0_INP", "TX DEC0 MUX",
+		"RX_TX DEC1_INP", "TX DEC1 MUX",
+		"RX_TX DEC2_INP", "TX DEC2 MUX",
+		"RX_TX DEC3_INP", "TX DEC3 MUX",
+		"TX SWR_INPUT", "WCD_TX_OUTPUT",
+		"VA SWR_INPUT", "VA_SWR_CLK",
+		"VA SWR_INPUT", "WCD_TX_OUTPUT",
+		"VA_AIF1 CAP", "VA_SWR_CLK",
+		"VA_AIF2 CAP", "VA_SWR_CLK",
+		"VA_AIF3 CAP", "VA_SWR_CLK",
+		"VA DMIC0", "Digital Mic0",
+		"VA DMIC1", "Digital Mic1",
+		"VA DMIC2", "Digital Mic2",
+		"VA DMIC3", "Digital Mic3",
+		"VA DMIC4", "Digital Mic4",
+		"VA DMIC5", "Digital Mic5",
+		"VA DMIC0", "VA MIC BIAS1",
+		"VA DMIC1", "VA MIC BIAS3",
+		"VA DMIC2", "VA MIC BIAS4",
+		"VA DMIC3", "VA MIC BIAS1",
+		"VA DMIC4", "VA MIC BIAS3",
+		"VA DMIC5", "VA MIC BIAS4";
+
+	qcom,msm-mbhc-usbc-audio-supported = <1>;
+	qcom,msm-mbhc-hphl-swh = <0>;
+	qcom,msm-mbhc-gnd-swh = <0>;
+
+	/* PRI_MI2S_RX binds "tfa98xx.1-0034/35" by name (msm_dailink.h). */
+	asoc-codec = <&stub_codec>, <&bolero>,
+		      <&wcd938x_codec>, <&swr_haptics>,
+		      <&ext_disp_audio_codec>;
+	asoc-codec-names = "msm-stub-codec.1", "bolero_codec",
+			   "wcd938x_codec", "swr-haptics",
+			   "msm-ext-disp-audio-codec-rx";
+	qcom,wsa-max-devs = <0>;
+	qcom,swr-dmic-max-devs = <0>;
+};
+
+/* pri-TDM pinctrl kept for the aux/TDM path */
+&q6core {
+	cdc_pri_tdm_gpios: pri_tdm_pinctrl {
+		compatible = "qcom,msm-cdc-pinctrl";
+		pinctrl-names = "aud_active", "aud_sleep";
+		pinctrl-0 = <&pri_tdm_clk_active &pri_tdm_sync_active
+			&pri_tdm_din_active &pri_tdm_dout_active>;
+		pinctrl-1 = <&pri_tdm_clk_sleep &pri_tdm_sync_sleep
+			&pri_tdm_din_sleep &pri_tdm_dout_sleep>;
+		qcom,lpi-gpios;
+		#gpio-cells = <0>;
+	};
+};

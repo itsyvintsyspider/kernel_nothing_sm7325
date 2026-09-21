@@ -220,6 +220,11 @@ dtb-$(CONFIG_ARCH_SHIMA) += shima-rumi.dtb  \
 endif
 
 ifeq ($(CONFIG_BUILD_ARM64_DT_OVERLAY),y)
+
+# Nothing Phone (1) Spacewar
+dtbo-$(CONFIG_NOTHING_SPACEWAR) += nothing-spacewar-sm7325-overlay.dtbo
+nothing-spacewar-sm7325-overlay.dtbo-base := yupik.dtb
+
 dtbo-$(CONFIG_ARCH_YUPIK) +=    \
 	yupik-rumi-overlay.dtbo \
 	yupik-idp-overlay.dtbo \
