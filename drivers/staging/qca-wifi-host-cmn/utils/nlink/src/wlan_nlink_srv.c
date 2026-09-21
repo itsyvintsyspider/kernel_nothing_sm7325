@@ -37,6 +37,11 @@
 
 #define WLAN_CLD80211_MAX_SIZE (SKB_WITH_OVERHEAD(8192UL) - NLMSG_HDRLEN)
 
+#ifdef CNSS_GENL
+static void *nl80211hdr_put(struct sk_buff *skb, uint32_t portid,
+		     uint32_t seq, int flags, uint8_t cmd);
+#endif
+
 #if defined(CONFIG_CNSS_LOGGER)
 
 #include <net/cnss_logger.h>
@@ -341,7 +346,7 @@ int nl_srv_unregister(tWlanNlModTypes msg_type, nl_srv_msg_callback msg_handler)
 	return 0;
 }
 
-void *nl80211hdr_put(struct sk_buff *skb, uint32_t portid,
+static void *nl80211hdr_put(struct sk_buff *skb, uint32_t portid,
 		     uint32_t seq, int flags, uint8_t cmd)
 {
 	struct genl_family *cld80211_fam = cld80211_get_genl_family();

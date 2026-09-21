@@ -80,20 +80,11 @@ int nl_srv_ucast(struct sk_buff *skb, int dst_pid, int flag,
 			int app_id, int mcgroup_id);
 int nl_srv_bcast(struct sk_buff *skb, int mcgroup_id, int app_id);
 
-/**
- * nl80211hdr_put() - API to fill genlmsg header
- * @skb: Sk buffer
- * @portid: Port ID
- * @seq: Sequence number
- * @flags: Flags
- * @cmd: Command id
- *
- * API to fill genl message header for brodcast events to user space
- *
- * Return: Pointer to user specific header/payload
+/* nl80211hdr_put() is internal to wlan_nlink_srv.c only -- no external
+ * callers anywhere in this tree, so it's declared static there instead
+ * of here (avoids colliding with net/wireless/nl80211.c's own function
+ * of the same name once everything is built into a single vmlinux).
  */
-void *nl80211hdr_put(struct sk_buff *skb, uint32_t portid,
-		     uint32_t seq, int flags, uint8_t cmd);
 #else
 int nl_srv_ucast(struct sk_buff *skb, int dst_pid, int flag);
 int nl_srv_bcast(struct sk_buff *skb);
