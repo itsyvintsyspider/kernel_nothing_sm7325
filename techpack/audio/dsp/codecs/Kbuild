@@ -13,7 +13,7 @@ ifeq ($(KERNEL_BUILD), 1)
 	AUDIO_ROOT := $(AUDIO_BLD_DIR)/techpack/audio
 endif
 
-ifeq (0, 0)
+ifeq ($(KERNEL_BUILD), 0)
 	ifeq ($(CONFIG_ARCH_SM6150), y)
 		include $(AUDIO_ROOT)/config/sm6150auto.conf
 		export
@@ -163,12 +163,4 @@ obj-$(CONFIG_MSM_QDSP6V2_CODECS) += native_dlkm.o
 native_dlkm-y := $(NATIVE_OBJS)
 
 # inject some build related information
-#
-# NOTE: the upstream "inject some build related information"
-# BUILD_TIMESTAMP=... line was removed here -- appending a
-# $(shell date ...) value to this flags variable this late in the
-# file breaks Kbuild rule generation for this directory (same class
-# of bug bisection-confirmed in techpack/audio/ipc/Kbuild:
-# "scripts/Makefile.build:288: *** prerequisites cannot be defined
-# in recipes"). Purely a cosmetic compile-time timestamp define
-# with no functional effect, not worth the build breakage.
+DEFINES += -DBUILD_TIMESTAMP=\"$(shell date -u +'%Y-%m-%dT%H:%M:%SZ')\"

@@ -6,8 +6,12 @@ else
 	KERNEL_BUILD := 0
 endif
 
+# These are configurable via Kconfig for kernel-based builds
+# Need to explicitly configure for Android-based builds
+KDIR := $(TOP)/kernel/msm-5.4
+
 ifeq ($(KERNEL_BUILD), 1)
-	AUDIO_ROOT := $(srctree)/techpack/audio
+	AUDIO_ROOT := $(KDIR)/techpack/audio
 endif
 
 ifeq ($(CONFIG_SND_SOC_AUTO), y)
@@ -37,7 +41,7 @@ ifeq ($(CONFIG_SND_SOC_AUTO), y)
 		INCS    +=  -include $(AUDIO_ROOT)/config/sa8295gvmautoconf.h
 	endif
 else
-	ifeq (0, 0)
+	ifeq ($(KERNEL_BUILD), 0)
 			ifeq ($(CONFIG_ARCH_SM6150), y)
 			ifdef CONFIG_SND_SOC_SA6155
 				include $(AUDIO_ROOT)/config/sa6155auto.conf
@@ -175,14 +179,6 @@ CDEFINES +=	-DANI_LITTLE_BYTE_ENDIAN \
 
 KBUILD_CPPFLAGS += $(CDEFINES)
 
-# KBUILD_EXTRA_SYMBOLS references an out-of-tree DLKM build's Module.symvers
-# via $(OUT), which is an Android-build-system variable that's undefined in
-# an in-tree (KERNEL_BUILD=1) build -- a prior commit here
-# (5d3ef09585bf2 "techpack: audio: fix config file inclusion") widened an
-# earlier ifeq ($(KERNEL_BUILD), 0) to an unconditional ifeq (0, 0),
-# correctly for the platform-config-selection block above but incorrectly
-# for this one, which then corrupts Kbuild's rule generation for in-tree
-# builds. Restore the KERNEL_BUILD gate here specifically.
 ifeq ($(KERNEL_BUILD), 0)
 KBUILD_EXTRA_SYMBOLS +=$(OUT)/obj/vendor/qcom/opensource/audio-kernel/dsp/Module.symvers
 endif
@@ -223,14 +219,5 @@ apr_dlkm-y := $(APRV_GLINK)
 obj-$(CONFIG_WCD_DSP_GLINK) += wglink_dlkm.o
 wglink_dlkm-y := $(WDSP_GLINK)
 
-#
-# NOTE: the upstream "inject some build related information"
-# CDEFINES += -DBUILD_TIMESTAMP=... line was removed here.
-# Appending to CDEFINES this late in the file (after it's already been
-# folded into KBUILD_CPPFLAGS above) breaks Kbuild's rule generation for
-# this directory -- confirmed via bisection: removing this single line is
-# what fixes "scripts/Makefile.build:288: *** prerequisites cannot be
-# defined in recipes." Reformatting the date (dropping colons) did NOT
-# fix it, so it's the late CDEFINES append itself, not colon characters
-# in the value. Purely a cosmetic compile-time timestamp define with no
-# functional effect, not worth the build breakage.
+# inject some build related information
+CDEFINES += -DBUILD_TIMESTAMP=\"$(shell date -u +'%Y-%m-%dT%H:%M:%SZ')\"
