@@ -12,6 +12,14 @@
  * of the licence, or (at your option) any later version.
  */
 #define _GNU_SOURCE
+/*
+ * ENGINE_by_id() and friends are OSSL_DEPRECATEDIN_3_0 -- on a host with
+ * OpenSSL 3.x, their prototypes are hidden entirely unless we opt into
+ * pre-3.0 API visibility, which otherwise makes them implicitly-int
+ * undeclared functions (real compile error, not just a deprecation
+ * warning). The PKCS#11 ENGINE path itself is still real, just old API.
+ */
+#define OPENSSL_API_COMPAT 0x10100000L
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
