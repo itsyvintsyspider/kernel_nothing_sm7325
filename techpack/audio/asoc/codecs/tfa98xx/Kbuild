@@ -111,4 +111,12 @@ endif
 obj-$(CONFIG_SND_SOC_TFA98XX)    += tfa98xx_dlkm.o
 tfa98xx_dlkm-y := $(TFA98XX_OBJS)
 # inject some build related information
-DEFINES += -DBUILD_TIMESTAMP=\"$(shell date -u +'%Y-%m-%dT%H:%M:%SZ')\"
+#
+# NOTE: the upstream "inject some build related information"
+# BUILD_TIMESTAMP=... line was removed here -- appending a
+# $(shell date ...) value to this flags variable this late in the
+# file breaks Kbuild rule generation for this directory (same class
+# of bug bisection-confirmed in techpack/audio/ipc/Kbuild:
+# "scripts/Makefile.build:288: *** prerequisites cannot be defined
+# in recipes"). Purely a cosmetic compile-time timestamp define
+# with no functional effect, not worth the build breakage.
