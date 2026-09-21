@@ -1285,6 +1285,17 @@
 
 		goodix,firmware-name = "goodix_firmware.bin";
 		goodix,config-name = "goodix_cfg_group.bin";
+
+		/*
+		 * Lets goodix_check_dt() -> of_drm_find_panel() resolve
+		 * active_panel so drm_panel_notifier_register() actually
+		 * runs (sde_kms.c fires drm_panel_notifier_call_chain() on
+		 * blank/unblank). Without it the driver still probes and
+		 * registers input normally -- this only affects panel-state
+		 * notifications (e.g. touch behavior around suspend/resume),
+		 * not the core SPI bring-up.
+		 */
+		qcom,display-panels = <&dsi_rm692e5_visionox_amoled_120hz_cmd>;
 	};
 };
 

@@ -27,6 +27,19 @@
 #include <linux/compat.h>
 #include "goodix_ts_core.h"
 
+/*
+ * goodix_ts_core.h only declares real (non-stub) goodix_tools_init/exit
+ * under CONFIG_TOUCHSCREEN_GOODIX_BRL_DEBUG -- otherwise it provides
+ * static inline stubs of the same names. Since this file was previously
+ * compiled unconditionally (willay24 builds it as a standalone external
+ * module with no such gate), those stubs and this file's own real
+ * definitions collided in the same translation unit: error: redefinition
+ * of 'goodix_tools_init'/'goodix_tools_exit'. Gating this file's content
+ * the same way the header does resolves that without needing a Kconfig
+ * change.
+ */
+#ifdef CONFIG_TOUCHSCREEN_GOODIX_BRL_DEBUG
+
 #define GOODIX_TOOLS_NAME		"gtp_tools"
 #define GOODIX_TOOLS_VER_MAJOR		1
 #define GOODIX_TOOLS_VER_MINOR		0
@@ -502,3 +515,5 @@ void goodix_tools_exit(void)
 	kfree(goodix_tools_dev);
 	ts_info("Debug tools miscdev exit");
 }
+
+#endif /* CONFIG_TOUCHSCREEN_GOODIX_BRL_DEBUG */

@@ -49,7 +49,6 @@
 #include <soc/qcom/minidump.h>
 #include <linux/delay.h>
 #include <linux/debugfs.h>
-#include <linux/pm_qos.h>
 #include <linux/stat.h>
 #include <linux/preempt.h>
 #include <linux/of_reserved_mem.h>
@@ -330,11 +329,6 @@ struct gid_list {
 	unsigned int gidcount;
 };
 
-struct qos_cores {
-	int *coreno;
-	int corecount;
-};
-
 struct fastrpc_file;
 
 struct fastrpc_buf {
@@ -550,7 +544,6 @@ struct fastrpc_apps {
 	/* Non-secure subsystem like CDSP will use regular client */
 	struct wakeup_source *wake_source;
 	uint32_t duplicate_rsp_err_cnt;
-	struct qos_cores silvercores;
 	uint32_t max_size_limit;
 	void *ramdump_handle;
 	bool enable_ramdump;
@@ -635,8 +628,6 @@ struct fastrpc_file {
 	int dsp_proc_init;
 	struct fastrpc_apps *apps;
 	struct dentry *debugfs_file;
-	struct dev_pm_qos_request *dev_pm_qos_req;
-	int qos_request;
 	struct mutex map_mutex;
 	struct mutex internal_map_mutex;
 	/* Identifies the device (MINOR_NUM_DEV / MINOR_NUM_SECURE_DEV) */
@@ -4172,19 +4163,30 @@ static int fastrpc_init_process(struct fastrpc_file *fl,
 		err = -ECONNREFUSED;
 		goto bail;
 	}
+	pr_info("NOX-DEBUG: fastrpc_channel_open enter comm=%s cid=%d\n",
+		current->comm, cid);
 	err = fastrpc_channel_open(fl);
+	pr_info("NOX-DEBUG: fastrpc_channel_open exit err=%d comm=%s\n", err, current->comm);
 	if (err)
 		goto bail;
+	pr_info("NOX-DEBUG: fastrpc_init_process flags=%d comm=%s\n",
+		init->flags, current->comm);
 	switch (init->flags) {
 	case FASTRPC_INIT_ATTACH:
 	case FASTRPC_INIT_ATTACH_SENSORS:
+		pr_info("NOX-DEBUG: fastrpc_init_attach_process enter comm=%s\n", current->comm);
 		err = fastrpc_init_attach_process(fl, init);
+		pr_info("NOX-DEBUG: fastrpc_init_attach_process exit err=%d comm=%s\n", err, current->comm);
 		break;
 	case FASTRPC_INIT_CREATE:
+		pr_info("NOX-DEBUG: fastrpc_init_create_dynamic_process enter comm=%s\n", current->comm);
 		err = fastrpc_init_create_dynamic_process(fl, uproc);
+		pr_info("NOX-DEBUG: fastrpc_init_create_dynamic_process exit err=%d comm=%s\n", err, current->comm);
 		break;
 	case FASTRPC_INIT_CREATE_STATIC:
+		pr_info("NOX-DEBUG: fastrpc_init_create_static_process enter comm=%s\n", current->comm);
 		err = fastrpc_init_create_static_process(fl, init);
+		pr_info("NOX-DEBUG: fastrpc_init_create_static_process exit err=%d comm=%s\n", err, current->comm);
 		break;
 	default:
 		err = -ENOTTY;
@@ -5414,7 +5416,6 @@ skip_dump_wait:
 	kfree(fl->debug_buf);
 	kfree(fl->gidlist.gids);
 	if (!fl->sctx) {
-		kfree(fl->dev_pm_qos_req);
 		kfree(fl);
 		return 0;
 	}
@@ -5455,7 +5456,6 @@ skip_dump_wait:
 	fastrpc_remote_buf_list_free(fl);
 	mutex_destroy(&fl->map_mutex);
 	mutex_destroy(&fl->internal_map_mutex);
-	kfree(fl->dev_pm_qos_req);
 	kfree(fl);
 	return 0;
 }
@@ -5463,19 +5463,10 @@ skip_dump_wait:
 static int fastrpc_device_release(struct inode *inode, struct file *file)
 {
 	struct fastrpc_file *fl = (struct fastrpc_file *)file->private_data;
-	struct fastrpc_apps *me = &gfa;
-	u32 ii;
 
 	if (!fl)
 		return 0;
 
-	if (fl->qos_request && fl->dev_pm_qos_req) {
-		for (ii = 0; ii < me->silvercores.corecount; ii++) {
-			if (!dev_pm_qos_request_active(&fl->dev_pm_qos_req[ii]))
-				continue;
-			dev_pm_qos_remove_request(&fl->dev_pm_qos_req[ii]);
-		}
-	}
 	debugfs_remove(fl->debugfs_file);
 	fastrpc_file_free(fl);
 	file->private_data = NULL;
@@ -5794,6 +5785,9 @@ static int fastrpc_device_open(struct inode *inode, struct file *filp)
 	 */
 	int dev_minor = MINOR(inode->i_rdev);
 
+	pr_info("NOX-DEBUG: fastrpc_device_open enter comm=%s pid=%d dev_minor=%d\n",
+		current->comm, current->pid, dev_minor);
+
 	VERIFY(err, ((dev_minor == MINOR_NUM_DEV) ||
 			(dev_minor == MINOR_NUM_SECURE_DEV)));
 	if (err) {
@@ -5824,7 +5818,6 @@ static int fastrpc_device_open(struct inode *inode, struct file *filp)
 	fl->cid = -1;
 	fl->dev_minor = dev_minor;
 	fl->init_mem = NULL;
-	fl->qos_request = 0;
 	fl->dsp_proc_init = 0;
 	fl->is_ramdump_pend = false;
 	fl->dsp_process_state = PROCESS_CREATE_DEFAULT;
@@ -5836,10 +5829,9 @@ static int fastrpc_device_open(struct inode *inode, struct file *filp)
 	spin_lock(&me->hlock);
 	hlist_add_head(&fl->hn, &me->drivers);
 	spin_unlock(&me->hlock);
-	fl->dev_pm_qos_req = kcalloc(me->silvercores.corecount,
-				sizeof(struct dev_pm_qos_request),
-				GFP_KERNEL);
 
+	pr_info("NOX-DEBUG: fastrpc_device_open exit comm=%s pid=%d\n",
+		current->comm, current->pid);
 	return 0;
 }
 
@@ -5981,9 +5973,6 @@ static int fastrpc_internal_control(struct fastrpc_file *fl,
 					struct fastrpc_ioctl_control *cp)
 {
 	int err = 0;
-	unsigned int latency;
-	struct fastrpc_apps *me = &gfa;
-	u32 silver_core_count = me->silvercores.corecount, ii = 0, cpu;
 
 	VERIFY(err, !IS_ERR_OR_NULL(fl) && !IS_ERR_OR_NULL(fl->apps));
 	if (err) {
@@ -5998,41 +5987,6 @@ static int fastrpc_internal_control(struct fastrpc_file *fl,
 
 	switch (cp->req) {
 	case FASTRPC_CONTROL_LATENCY:
-		latency = cp->lp.enable == FASTRPC_LATENCY_CTRL_ENB ?
-			fl->apps->latency : PM_QOS_DEFAULT_VALUE;
-		VERIFY(err, latency != 0);
-		if (err) {
-			err = -EINVAL;
-			goto bail;
-		}
-
-		VERIFY(err, me->silvercores.coreno && fl->dev_pm_qos_req);
-		if (err)
-			goto bail;
-
-		for (ii = 0; ii < silver_core_count; ii++) {
-			cpu = me->silvercores.coreno[ii];
-			if (!fl->qos_request) {
-				err = dev_pm_qos_add_request(
-						get_cpu_device(cpu),
-						&fl->dev_pm_qos_req[ii],
-						DEV_PM_QOS_RESUME_LATENCY,
-						latency);
-			} else {
-				err = dev_pm_qos_update_request(
-						&fl->dev_pm_qos_req[ii],
-						latency);
-			}
-			if (err < 0) {
-				pr_warn("adsprpc: %s: %s: PM voting for cpu:%d failed, err %d, QoS update %d\n",
-					current->comm, __func__, cpu,
-					err, fl->qos_request);
-				break;
-			}
-		}
-		if (err >= 0)
-			fl->qos_request = 1;
-
 		/* Ensure CPU feature map updated to DSP for early WakeUp */
 		fastrpc_send_cpuinfo_to_dsp(fl);
 		break;
@@ -6351,8 +6305,13 @@ static long fastrpc_device_ioctl(struct file *file, unsigned int ioctl_num,
 	p.inv.perf_dsp = NULL;
 	p.inv.job = NULL;
 
+	pr_info("NOX-DEBUG: fastrpc_device_ioctl enter comm=%s pid=%d ioctl_num=0x%x cid=%d\n",
+		current->comm, current->pid, ioctl_num, fl ? fl->cid : -1);
+
+	pr_info("NOX-DEBUG: fastrpc_check_pd_status enter comm=%s\n", current->comm);
 	err = fastrpc_check_pd_status(fl,
 			AUDIO_PDR_SERVICE_LOCATION_CLIENT_NAME);
+	pr_info("NOX-DEBUG: fastrpc_check_pd_status exit err=%d comm=%s\n", err, current->comm);
 	if (err)
 		goto bail;
 
@@ -6388,8 +6347,10 @@ static long fastrpc_device_ioctl(struct file *file, unsigned int ioctl_num,
 			err = -EFAULT;
 			goto bail;
 		}
+		pr_info("NOX-DEBUG: fastrpc_internal_invoke enter comm=%s\n", current->comm);
 		VERIFY(err, 0 == (err = fastrpc_internal_invoke(fl, fl->mode,
 						USER_MSG, &p.inv)));
+		pr_info("NOX-DEBUG: fastrpc_internal_invoke exit err=%d comm=%s\n", err, current->comm);
 		if (err)
 			goto bail;
 		break;
@@ -6400,15 +6361,21 @@ static long fastrpc_device_ioctl(struct file *file, unsigned int ioctl_num,
 			err = -EFAULT;
 			goto bail;
 		}
+		pr_info("NOX-DEBUG: fastrpc_internal_invoke2 enter comm=%s\n", current->comm);
 		VERIFY(err, 0 == (err = fastrpc_internal_invoke2(fl, &p.inv2)));
+		pr_info("NOX-DEBUG: fastrpc_internal_invoke2 exit err=%d comm=%s\n", err, current->comm);
 		if (err)
 			goto bail;
 		break;
 	case FASTRPC_IOCTL_SETMODE:
+		pr_info("NOX-DEBUG: fastrpc_setmode enter comm=%s\n", current->comm);
 		err = fastrpc_setmode(ioctl_param, fl);
+		pr_info("NOX-DEBUG: fastrpc_setmode exit err=%d comm=%s\n", err, current->comm);
 		break;
 	case FASTRPC_IOCTL_CONTROL:
+		pr_info("NOX-DEBUG: fastrpc_control enter comm=%s\n", current->comm);
 		err = fastrpc_control(&p.cp, param, fl);
+		pr_info("NOX-DEBUG: fastrpc_control exit err=%d comm=%s\n", err, current->comm);
 		break;
 	case FASTRPC_IOCTL_GETINFO:
 	    K_COPY_FROM_USER(err, 0, &info, param, sizeof(info));
@@ -6416,7 +6383,9 @@ static long fastrpc_device_ioctl(struct file *file, unsigned int ioctl_num,
 			err = -EFAULT;
 			goto bail;
 		}
+		pr_info("NOX-DEBUG: fastrpc_get_info enter comm=%s\n", current->comm);
 		VERIFY(err, 0 == (err = fastrpc_get_info(fl, &info)));
+		pr_info("NOX-DEBUG: fastrpc_get_info exit err=%d comm=%s\n", err, current->comm);
 		if (err)
 			goto bail;
 		K_COPY_TO_USER(err, 0, param, &info, sizeof(info));
@@ -6438,7 +6407,10 @@ static long fastrpc_device_ioctl(struct file *file, unsigned int ioctl_num,
 			err = -EFAULT;
 			goto bail;
 		}
+		pr_info("NOX-DEBUG: fastrpc_init_process enter comm=%s cid=%d\n",
+			current->comm, fl->cid);
 		VERIFY(err, 0 == (err = fastrpc_init_process(fl, &p.init)));
+		pr_info("NOX-DEBUG: fastrpc_init_process exit err=%d comm=%s\n", err, current->comm);
 		if (err)
 			goto bail;
 		if ((fl->cid == CDSP_DOMAIN_ID) && !isquerydone) {
@@ -6462,7 +6434,10 @@ static long fastrpc_device_ioctl(struct file *file, unsigned int ioctl_num,
 	case FASTRPC_IOCTL_MUNMAP_64:
 		/* fall through */
 	case FASTRPC_IOCTL_MUNMAP_FD:
+		pr_info("NOX-DEBUG: fastrpc_mmap_device_ioctl enter comm=%s ioctl_num=0x%x\n",
+			current->comm, ioctl_num);
 		err = fastrpc_mmap_device_ioctl(fl, ioctl_num, &p, param);
+		pr_info("NOX-DEBUG: fastrpc_mmap_device_ioctl exit err=%d comm=%s\n", err, current->comm);
 		break;
 	default:
 		err = -ENOTTY;
@@ -6470,6 +6445,8 @@ static long fastrpc_device_ioctl(struct file *file, unsigned int ioctl_num,
 		break;
 	}
  bail:
+	pr_info("NOX-DEBUG: fastrpc_device_ioctl exit err=%d comm=%s ioctl_num=0x%x\n",
+		err, current->comm, ioctl_num);
 	return err;
 }
 
@@ -6793,39 +6770,6 @@ bail:
 	}
 }
 
-static void init_qos_cores_list(struct device *dev, char *prop_name,
-						struct qos_cores *silvercores)
-{
-	int err = 0;
-	u32 len = 0, i = 0;
-	u32 *coreslist = NULL;
-
-	if (!of_find_property(dev->of_node, prop_name, &len))
-		goto bail;
-	if (len == 0)
-		goto bail;
-	len /= sizeof(u32);
-	VERIFY(err, NULL != (coreslist = kcalloc(len, sizeof(u32),
-						 GFP_KERNEL)));
-	if (err)
-		goto bail;
-	for (i = 0; i < len; i++) {
-		err = of_property_read_u32_index(dev->of_node, prop_name, i,
-								&coreslist[i]);
-		if (err) {
-			pr_err("adsprpc: %s: failed to read QOS cores list\n",
-								 __func__);
-			goto bail;
-		}
-	}
-	silvercores->coreno = coreslist;
-	silvercores->corecount = len;
-bail:
-	if (err) {
-		kfree(coreslist);
-	}
-}
-
 static void fastrpc_init_privileged_gids(struct device *dev, char *prop_name,
 						struct gid_list *gidlist)
 {
@@ -6979,8 +6923,6 @@ static int fastrpc_probe(struct platform_device *pdev)
 							&gcinfo[0].rhvm);
 		fastrpc_init_privileged_gids(dev, "qcom,fastrpc-gids",
 					&me->gidlist);
-		init_qos_cores_list(dev, "qcom,qos-cores",
-							&me->silvercores);
 
 		of_property_read_u32(dev->of_node, "qcom,rpc-latency-us",
 			&me->latency);

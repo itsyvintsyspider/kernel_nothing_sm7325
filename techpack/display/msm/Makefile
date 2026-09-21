@@ -1,16 +1,41 @@
 # SPDX-License-Identifier: GPL-2.0
+
+# techpack/display/config/lahainadisp.conf's `export CONFIG_X=y` doesn't
+# reliably survive into this directory's own recursive sub-make invocation.
+# Assigning CONFIG_DRM_MSM_SDE/_DSI etc. directly below was enough to fix
+# those object lists, but msm_drm-$(CONFIG_DRM_MSM_DP) below still silently
+# expanded to nothing even after the same treatment -- dp_display.o/dp_drm.o
+# never got linked in even though sde_kms.c (built with CONFIG_DRM_MSM_DP
+# defined via lahainadispconf.h's -include for the C side) called their
+# real, non-stub prototypes: ld.lld: undefined symbol:
+# dp_display_get_num_of_boot_displays etc. Since this board always wants DP
+# support on, the DP object list below is now unconditional (msm_drm-y)
+# rather than fighting whatever's dropping that one specific conditional.
+CONFIG_DRM_MSM := y
+CONFIG_DRM_MSM_DP := y
+CONFIG_DRM_MSM_DP_MST := y
+CONFIG_DRM_MSM_SDE := y
+CONFIG_DRM_MSM_DSI := y
+CONFIG_DSI_PARSER := y
+CONFIG_DRM_SDE_WB := y
+CONFIG_DRM_MSM_REGISTER_LOGGING := y
+CONFIG_QCOM_MDSS_PLL := y
+CONFIG_DRM_SDE_RSC := y
+CONFIG_DRM_SDE_VM := y
+
 ccflags-y := -I$(srctree)/include/drm -I$(srctree)/techpack/display/msm -I$(srctree)/techpack/display/msm/dsi -I$(srctree)/techpack/display/msm/dp
 ccflags-y += -I$(srctree)/techpack/display/msm/sde
 ccflags-y += -I$(srctree)/techpack/display/rotator
 ccflags-y += -I$(srctree)/techpack/display/hdcp
 ccflags-y += -I$(srctree)/drivers/clk/qcom/
 
-msm_drm-$(CONFIG_DRM_MSM_DP) += dp/dp_altmode.o \
+msm_drm-y += dp/dp_altmode.o \
 	dp/dp_parser.o \
 	dp/dp_power.o \
 	dp/dp_catalog.o \
 	dp/dp_catalog_v420.o \
 	dp/dp_catalog_v200.o \
+	dp/dp_catalog_v500.o \
 	dp/dp_aux.o \
 	dp/dp_panel.o \
 	dp/dp_link.o \
@@ -26,7 +51,8 @@ msm_drm-$(CONFIG_DRM_MSM_DP) += dp/dp_altmode.o \
 	sde_hdcp_1x.o \
 	sde_hdcp_2x.o \
 	dp/dp_pll.o \
-	dp/dp_pll_5nm.o
+	dp/dp_pll_5nm.o \
+	dp/edp_pll_7nm.o
 
 msm_drm-$(CONFIG_DRM_MSM_DP_MST) += dp/dp_mst_drm.o
 
@@ -155,19 +181,6 @@ msm_drm-$(CONFIG_MSM_SDE_ROTATOR) += ../rotator/sde_rotator_dev.o \
 	../rotator/sde_rotator_r1_debug.o \
 	../rotator/sde_rotator_r3_debug.o
 
-# CONFIG_DISPLAY_BUILD isn't a real Kconfig symbol -- it's a Makefile-only
-# variable techpack/display/Makefile force-exports (=m) from lahainadisp.conf.
-# That export correctly reaches this file's scope (confirmed via debug
-# prints), so obj-$(CONFIG_DISPLAY_BUILD) does correctly resolve to obj-m --
-# but kernel.mk's own module-install pipeline only ever runs `make modules`
-# when it finds a genuine `=m` line in the literal .config text, and since
-# CONFIG_DISPLAY_BUILD never goes through Kconfig, it never appears there.
-# This board's .config has zero real =m symbols anywhere (see
-# spacewar.config's own notes on the flattened lahaina-qgki_defconfig), so
-# `make modules` never gets invoked and msm_drm.o -- despite being fully,
-# correctly gated internally -- never actually gets compiled. Force built-in
-# instead, matching the same "inline, no vendor_dlkm" architecture every
-# other driver on this tree already uses.
-obj-y	+= msm_drm.o
+obj-$(CONFIG_DISPLAY_BUILD)	+= msm_drm.o
 
 obj-$(CONFIG_DRM_FBDEV_EMULATION) += msm_fbdev.o

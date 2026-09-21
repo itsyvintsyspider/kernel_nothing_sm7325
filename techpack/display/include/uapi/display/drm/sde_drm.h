@@ -495,6 +495,11 @@ struct sde_drm_roi_v1 {
 #define SDE_RECOVERY_CAPTURE		1
 #define SDE_RECOVERY_HARD_RESET		2
 
+/**
+ * sde fod dim layer
+ */
+#define FOD_PRESSED_LAYER_ZORDER	0x20000000u
+
 /*
  * Colorimetry Data Block values
  * These bit nums are defined as per the CTA spec
@@ -676,15 +681,6 @@ struct drm_msm_display_hint {
 #define DRM_MSM_DISPLAY_MODE_CHANGE_HINT          0x08
 
 #define DRM_MSM_WAKE_UP_ALL_DISPLAYS        0xFFFFFFFF
-
-/*
- * Under-display fingerprint (UDFPS) z-order flag: composer HALs built with
- * UDFPS_ZPOS OR this into a plane's z-order value to mark it as the
- * currently-pressed FOD layer, then mask it back off before programming the
- * real z-order onto hardware. Kept as the high bit since real z-order values
- * are always small non-negative integers.
- */
-#define FOD_PRESSED_LAYER_ZORDER            0x80000000
 
 #define DRM_IOCTL_SDE_WB_CONFIG \
 	DRM_IOW((DRM_COMMAND_BASE + DRM_SDE_WB_CONFIG), struct sde_drm_wb_cfg)

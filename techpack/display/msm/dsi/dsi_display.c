@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
- * Copyright (c) 2022, 2024 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) 2022-2023 Qualcomm Innovation Center, Inc. All rights reserved.
  * Copyright (c) 2016-2021, The Linux Foundation. All rights reserved.
  */
 
@@ -36,6 +36,8 @@
 #define MAX_TE_SOURCE_ID  2
 
 #define SEC_PANEL_NAME_MAX_LEN  256
+
+struct dsi_display *primary_display;
 
 u8 dbgfs_tx_cmd_buf[SZ_4K];
 static char dsi_display_primary[MAX_CMDLINE_PARAM_LEN];
@@ -2052,7 +2054,7 @@ static void adjust_timing_by_ctrl_count(const struct dsi_display *display,
 		mode->timing.h_skew /= sublinks_count;
 		mode->pixel_clk_khz /= sublinks_count;
 	} else {
-		if (mode->priv_info->dsc_enabled)
+		if ((mode->priv_info) && (mode->priv_info->dsc_enabled))
 			mode->priv_info->dsc.config.pic_width =
 				mode->timing.h_active;
 		mode->timing.h_active /= display->ctrl_count;
@@ -6087,22 +6089,8 @@ int dsi_display_dev_probe(struct platform_device *pdev)
 
 	platform_set_drvdata(pdev, display);
 
-	/*
-	 * initialize display in firmware callback -- optional async path that
-	 * lets a board override panel DSI properties via a "dsi_prop"/
-	 * "dsi_prop_sec" firmware blob instead of the DTS. This board ships
-	 * no such blob (falls through to "no firmware available, fallback to
-	 * device node" in dsi_display_firmware_display() either way), and
-	 * that async completion callback has no path back to the driver
-	 * core if dsi_display_init() inside it returns -EPROBE_DEFER (e.g.
-	 * racing mdss_dsi0's own probe during early built-in init) -- the
-	 * platform_driver .probe() call above it already returned success,
-	 * so the failure is just silently dropped with no retry, ever.
-	 * Force the synchronous path below instead: a real -EPROBE_DEFER
-	 * returned from .probe() correctly engages the standard kernel
-	 * deferred-probe retry mechanism.
-	 */
-	if (false && !(boot_displays[DSI_PRIMARY].boot_disp_en ||
+	/* initialize display in firmware callback */
+	if (!(boot_displays[DSI_PRIMARY].boot_disp_en ||
 			boot_displays[DSI_SECONDARY].boot_disp_en) &&
 			IS_ENABLED(CONFIG_DSI_PARSER) &&
 			!display->trusted_vm_env) {
@@ -6145,10 +6133,6 @@ int dsi_display_dev_remove(struct platform_device *pdev)
 	}
 
 	display = platform_get_drvdata(pdev);
-	if (!display || !display->panel_node) {
-		DSI_ERR("invalid display\n");
-		return -EINVAL;
-	}
 
 	/* decrement ref count */
 	of_node_put(display->panel_node);
@@ -6367,6 +6351,9 @@ static int dsi_display_ext_get_info(struct drm_connector *connector,
 		return -EINVAL;
 	}
 
+	if (display->panel->num_timing_nodes)
+		return dsi_display_get_info(connector, info, disp);
+
 	mutex_lock(&display->display_lock);
 
 	memset(info, 0, sizeof(struct msm_display_info));
@@ -6397,22 +6384,26 @@ static int dsi_display_ext_get_mode_info(struct drm_connector *connector,
 	void *display, const struct msm_resource_caps_info *avail_res)
 {
 	struct msm_display_topology *topology;
+	struct dsi_display *ext_display = (struct dsi_display *)display;
 
 	if (!drm_mode || !mode_info ||
 			!avail_res || !avail_res->max_mixer_width)
 		return -EINVAL;
 
+	if (ext_display->panel->num_timing_nodes)
+		return dsi_conn_get_mode_info(connector, drm_mode,
+			mode_info, display, avail_res);
+
 	memset(mode_info, 0, sizeof(*mode_info));
 	mode_info->frame_rate = drm_mode->vrefresh;
 	mode_info->vtotal = drm_mode->vtotal;
+	mode_info->comp_info.comp_type = MSM_DISPLAY_COMPRESSION_NONE;
 
 	topology = &mode_info->topology;
-	topology->num_lm = (avail_res->max_mixer_width
-			<= drm_mode->hdisplay) ? 2 : 1;
+	topology->num_lm = ext_display->ctrl_count;
+
 	topology->num_enc = 0;
 	topology->num_intf = topology->num_lm;
-
-	mode_info->comp_info.comp_type = MSM_DISPLAY_COMPRESSION_NONE;
 
 	return 0;
 }
@@ -7163,6 +7154,7 @@ int dsi_display_get_modes(struct dsi_display *display,
 exit:
 	*out_modes = display->modes;
 	rc = 0;
+	primary_display = display;
 
 error:
 	if (rc)
@@ -8349,15 +8341,26 @@ int dsi_display_enable(struct dsi_display *display)
 	}
 	SDE_EVT32(SDE_EVTLOG_FUNC_ENTRY);
 
+	pr_info("NOX-DEBUG: dsi_display_enable enter comm=%s skip_op=%d\n",
+		current->comm, is_skip_op_required(display));
+
 	/*
 	 * Engine states and panel states are populated during splash
 	 * resource/trusted vm and hence we return early
 	 */
 	if (is_skip_op_required(display)) {
 
+		pr_info("NOX-DEBUG: dsi_display_config_ctrl_for_cont_splash enter comm=%s\n",
+			current->comm);
 		dsi_display_config_ctrl_for_cont_splash(display);
+		pr_info("NOX-DEBUG: dsi_display_config_ctrl_for_cont_splash exit comm=%s\n",
+			current->comm);
 
+		pr_info("NOX-DEBUG: dsi_display_splash_res_cleanup enter comm=%s\n",
+			current->comm);
 		rc = dsi_display_splash_res_cleanup(display);
+		pr_info("NOX-DEBUG: dsi_display_splash_res_cleanup exit rc=%d comm=%s\n",
+			rc, current->comm);
 		if (rc) {
 			DSI_ERR("Continuous splash res cleanup failed, rc=%d\n",
 				rc);
@@ -8366,7 +8369,11 @@ int dsi_display_enable(struct dsi_display *display)
 
 		display->panel->panel_initialized = true;
 		DSI_DEBUG("cont splash enabled, display enable not required\n");
+		pr_info("NOX-DEBUG: dsi_display_panel_id_notification enter comm=%s\n",
+			current->comm);
 		dsi_display_panel_id_notification(display);
+		pr_info("NOX-DEBUG: dsi_display_panel_id_notification exit comm=%s\n",
+			current->comm);
 
 		return 0;
 	}
@@ -8376,7 +8383,9 @@ int dsi_display_enable(struct dsi_display *display)
 	mode = display->panel->cur_mode;
 
 	if (mode->dsi_mode_flags & DSI_MODE_FLAG_DMS) {
+		pr_info("NOX-DEBUG: dsi_panel_post_switch enter comm=%s\n", current->comm);
 		rc = dsi_panel_post_switch(display->panel);
+		pr_info("NOX-DEBUG: dsi_panel_post_switch exit rc=%d comm=%s\n", rc, current->comm);
 		if (rc) {
 			DSI_ERR("[%s] failed to switch DSI panel mode, rc=%d\n",
 				   display->name, rc);
@@ -8384,7 +8393,9 @@ int dsi_display_enable(struct dsi_display *display)
 		}
 	} else if (!(display->panel->cur_mode->dsi_mode_flags &
 			DSI_MODE_FLAG_POMS)){
+		pr_info("NOX-DEBUG: dsi_panel_enable enter comm=%s\n", current->comm);
 		rc = dsi_panel_enable(display->panel);
+		pr_info("NOX-DEBUG: dsi_panel_enable exit rc=%d comm=%s\n", rc, current->comm);
 		if (rc) {
 			DSI_ERR("[%s] failed to enable DSI panel, rc=%d\n",
 			       display->name, rc);
@@ -8784,6 +8795,10 @@ int dsi_display_unprepare(struct dsi_display *display)
 
 	SDE_EVT32(SDE_EVTLOG_FUNC_EXIT);
 	return rc;
+}
+
+struct dsi_display *get_main_display(void) {
+	return primary_display;
 }
 
 void __init dsi_display_register(void)
