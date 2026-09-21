@@ -175,7 +175,15 @@ CDEFINES +=	-DANI_LITTLE_BYTE_ENDIAN \
 
 KBUILD_CPPFLAGS += $(CDEFINES)
 
-ifeq (0, 0)
+# KBUILD_EXTRA_SYMBOLS references an out-of-tree DLKM build's Module.symvers
+# via $(OUT), which is an Android-build-system variable that's undefined in
+# an in-tree (KERNEL_BUILD=1) build -- a prior commit here
+# (5d3ef09585bf2 "techpack: audio: fix config file inclusion") widened an
+# earlier ifeq ($(KERNEL_BUILD), 0) to an unconditional ifeq (0, 0),
+# correctly for the platform-config-selection block above but incorrectly
+# for this one, which then corrupts Kbuild's rule generation for in-tree
+# builds. Restore the KERNEL_BUILD gate here specifically.
+ifeq ($(KERNEL_BUILD), 0)
 KBUILD_EXTRA_SYMBOLS +=$(OUT)/obj/vendor/qcom/opensource/audio-kernel/dsp/Module.symvers
 endif
 

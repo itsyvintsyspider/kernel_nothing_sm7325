@@ -264,7 +264,7 @@ CHIP_NAME ?= $(MODNAME)
 CDEFINES += -DMULTI_IF_NAME=\"$(CHIP_NAME)\"
 endif
 
-ifeq (0, 0)
+ifeq ($(KERNEL_BUILD), 0)
 KBUILD_EXTRA_SYMBOLS +=$(OUT)/obj/vendor/qcom/opensource/audio-kernel/ipc/Module.symvers
 endif
 

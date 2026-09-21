@@ -191,7 +191,7 @@ CDEFINES +=	-DANI_LITTLE_BYTE_ENDIAN \
 
 KBUILD_CPPFLAGS += $(CDEFINES)
 
-ifeq (0, 0)
+ifeq ($(KERNEL_BUILD), 0)
 KBUILD_EXTRA_SYMBOLS +=$(OUT)/obj/vendor/qcom/opensource/audio-kernel/dsp/Module.symvers
 endif
 
