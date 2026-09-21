@@ -535,6 +535,21 @@ source "drivers/misc/vmw_vmci/Kconfig"
 source "drivers/misc/mic/Kconfig"
 source "drivers/misc/genwqe/Kconfig"
 source "drivers/misc/echo/Kconfig"
+config NT_HWID
+	bool "NT Hardware ID Driver"
+	help
+	  NT Hardware ID Driver.
+
+config NT_SECURE_STATE
+	bool "NT Secure State Driver"
+	help
+	  NT Secure State Driver.
+
+config NT_SLOT_STATE
+	bool "NT SLOT State Driver"
+	help
+	  NT SLOT State Driver.
+
 source "drivers/misc/cxl/Kconfig"
 source "drivers/misc/ocxl/Kconfig"
 source "drivers/misc/cardreader/Kconfig"

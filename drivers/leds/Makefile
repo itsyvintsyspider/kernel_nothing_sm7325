@@ -101,4 +101,5 @@ obj-$(CONFIG_LEDS_DAC124S085)		+= leds-dac124s085.o
 obj-$(CONFIG_LEDS_USER)			+= uleds.o
 
 # LED Triggers
+obj-$(CONFIG_LEDS_AW210XX)		+= leds_aw210xx.o
 obj-$(CONFIG_LEDS_TRIGGERS)		+= trigger/
