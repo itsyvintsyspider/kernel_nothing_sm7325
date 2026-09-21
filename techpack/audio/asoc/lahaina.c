@@ -8367,7 +8367,7 @@ static int msm_snd_card_late_probe(struct snd_soc_card *card)
 	if (!is_wcd937x) {
 		ret = wcd938x_mbhc_hs_detect(component, &wcd_mbhc_cfg);
 	} else {
-#if IS_ENABLED(CONFIG_SND_SOC_WCD937X)
+#ifdef CONFIG_SND_SOC_WCD937X
 		ret = wcd937x_mbhc_hs_detect(component, &wcd_mbhc_cfg);
 #else
 		ret = -ENODEV;
@@ -8741,7 +8741,7 @@ static int msm_rx_tx_codec_init(struct snd_soc_pcm_runtime *rtd)
 
 	if (!strncmp(component->driver->name, WCD937X_DRV_NAME,
 	    strlen(WCD937X_DRV_NAME))) {
-#if IS_ENABLED(CONFIG_SND_SOC_WCD937X)
+#ifdef CONFIG_SND_SOC_WCD937X
 		wcd937x_info_create_codec_entry(pdata->codec_root, component);
 		codec_variant = wcd937x_get_codec_variant(component);
 #else

@@ -34,8 +34,11 @@
 #define CONFIG_SND_SOC_WCD_IRQ 1
 #define CONFIG_SND_SOC_WCD938X 1
 #define CONFIG_SND_SOC_WCD938X_SLAVE 1
-#define CONFIG_SND_SOC_WCD937X 1
-#define CONFIG_SND_SOC_WCD937X_SLAVE 1
+/* WCD937X disabled: Spacewar only has WCD938X (real duplicate-symbol
+ * conflict if both are built). lahainaauto.conf's Make-level export
+ * was already disabled; this header's #define is a separate,
+ * independent mechanism that was still forcing it on regardless.
+ */
 #define CONFIG_SND_SOC_WSA883X 1
 #define CONFIG_SND_SOC_SWR_DMIC 1
 #define CONFIG_SND_SOC_LAHAINA 1
