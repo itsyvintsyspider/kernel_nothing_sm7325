@@ -327,7 +327,7 @@ proc_read_err:
     return ret;
 }
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 6, 0))
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 4, 0))
 static const struct proc_ops fts_proc_fops = {
     .proc_read   = fts_debug_read,
     .proc_write  = fts_debug_write,
@@ -633,7 +633,7 @@ static ssize_t fts_ta_read(
     return read_num;
 }
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 6, 0))
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 4, 0))
 static const struct proc_ops fts_procta_fops = {
     .proc_open = fts_ta_open,
     .proc_release = fts_ta_release,
