@@ -1461,6 +1461,21 @@ struct subsys_device *subsys_register(struct subsys_desc *desc)
 		return ERR_PTR(-ENOMEM);
 
 	subsys->desc = desc;
+	/* TEMPORARY bring-up aid: restart_level defaults to RESET_SOC (0)
+	 * via kzalloc's zero-init, so subsystem_restart_dev() panics the
+	 * whole SoC on ANY crash unless userspace opts a subsystem into
+	 * RESET_SUBSYS_COUPLED via sysfs first -- which never happens this
+	 * early in boot. Confirmed via a real device: the modem firmware's
+	 * own internal NULL-pointer crash (EX:kernel:0x0, BADVA=0x0, deep
+	 * in its closed-source RTOS, not something this tree's source can
+	 * fix) was panicking the SoC at ~55s into boot, well before
+	 * userspace ever gets a chance to run. Let modem reload independently
+	 * instead, so a modem firmware crash doesn't block reaching Android
+	 * userspace. Revert once the modem firmware itself is sorted out --
+	 * this is strictly a debugging aid, not something to ship.
+	 */
+	if (!strcmp(desc->name, "modem"))
+		subsys->restart_level = RESET_SUBSYS_COUPLED;
 	subsys->owner = desc->owner;
 	subsys->dev.parent = desc->dev;
 	subsys->dev.bus = &subsys_bus_type;
