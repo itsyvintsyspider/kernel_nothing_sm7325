@@ -642,6 +642,7 @@
 	};
 
 	quiet-therm-nt-step {
+		disable-thermal-zone;
 		polling-delay-passive = <2000>;
 		polling-delay = <0>;
 		thermal-governor = "step_wise";
@@ -697,11 +698,55 @@
 
 			batt-cdev3 {
 				trip = <&quiet_batt_trip3>;
-				cooling-device = <&battery_charger 5 5>;
+				cooling-device = <&battery_charger 6 6>;
 			};
 
 			batt-cdev4 {
 				trip = <&quiet_batt_trip4>;
+				cooling-device = <&battery_charger 7 7>;
+			};
+		};
+	};
+
+	quiet-nt-pps-step {
+		polling-delay-passive = <2000>;
+		polling-delay = <0>;
+		thermal-governor = "step_wise";
+		thermal-sensors = <&pmk8350_adc_tm PM7325_ADC7_AMUX_THM1_100K_PU>;
+
+		trips {
+			quiet_batt_pps_trip0: quiet-batt-pps-trip0 {
+				temperature = <36000>;
+				hysteresis = <3000>;
+				type = "passive";
+			};
+
+			quiet_batt_pps_trip1: quiet-batt-pps-trip1 {
+				temperature = <40000>;
+				hysteresis = <5000>;
+				type = "passive";
+			};
+
+			quiet_batt_pps_trip2: quiet-batt-pps-trip2 {
+				temperature = <43000>;
+				hysteresis = <4000>;
+				type = "passive";
+			};
+		};
+
+		cooling-maps {
+			batt-pps-cdev0 {
+				trip = <&quiet_batt_pps_trip0>;
+				cooling-device = <&battery_charger 3 3>;
+			};
+
+			batt-pps-cdev1 {
+				trip = <&quiet_batt_pps_trip1>;
+				cooling-device = <&battery_charger 5 5>;
+			};
+
+			batt-pps-cdev2 {
+				trip = <&quiet_batt_pps_trip2>;
 				cooling-device = <&battery_charger 6 6>;
 			};
 		};
@@ -1285,36 +1330,25 @@
 
 		goodix,firmware-name = "goodix_firmware.bin";
 		goodix,config-name = "goodix_cfg_group.bin";
-
-		/*
-		 * Lets goodix_check_dt() -> of_drm_find_panel() resolve
-		 * active_panel so drm_panel_notifier_register() actually
-		 * runs (sde_kms.c fires drm_panel_notifier_call_chain() on
-		 * blank/unblank). Without it the driver still probes and
-		 * registers input normally -- this only affects panel-state
-		 * notifications (e.g. touch behavior around suspend/resume),
-		 * not the core SPI bring-up.
-		 */
-		qcom,display-panels = <&dsi_rm692e5_visionox_amoled_120hz_cmd>;
 	};
 };
 
 &qupv3_se9_i2c {
-    status = "okay";
-    st21nfc: st21nfc@08 {
-        compatible = "st,st21nfc";
-        reg = <0x08>;
-        interrupt-parent = <&tlmm>;
-        interrupts = <41  0>;
-        reset-gpios = <&tlmm 38 0x00>;
-        irq-gpios = <&tlmm 41 0x00>;
-        // pidle-gpios = <&tlmm 48 0x00>;
-        clkreq-gpios = <&tlmm 39 0x00>;
-        clocks = <&rpmhcc RPMH_LN_BB_CLK2>;
-        clock-names = "nfc_ref_clk";
-        st,clk_pinctrl;
-        status = "disabled";
-    };
+	status = "okay";
+	st21nfc: st21nfc@08 {
+		compatible = "st,st21nfc";
+		reg = <0x08>;
+		interrupt-parent = <&tlmm>;
+		interrupts = <41  0>;
+		reset-gpios = <&tlmm 38 0x00>;
+		irq-gpios = <&tlmm 41 0x00>;
+		// pidle-gpios = <&tlmm 48 0x00>;
+		clkreq-gpios = <&tlmm 39 0x00>;
+		clocks = <&rpmhcc RPMH_LN_BB_CLK2>;
+		clock-names = "nfc_ref_clk";
+		st,clk_pinctrl;
+		status = "disabled";
+	};
 };
 
 &qupv3_se14_spi {
@@ -1346,6 +1380,7 @@
 		reg = <0x35>;
 	};
 };
+
 &tlmm{
 	aw210xx_led_pins {
 		led_gpio_en: led_gpio_en {

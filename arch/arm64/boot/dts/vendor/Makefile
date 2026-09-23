@@ -1,2 +1,5 @@
-# SPDX-License-Identifier: GPL-2.0
-subdir-y += qcom
+vendor := $(srctree)/$(src)
+
+ifneq "$(wildcard $(vendor)/qcom)" ""
+	subdir-y += qcom
+endif

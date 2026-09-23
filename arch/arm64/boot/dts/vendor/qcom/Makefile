@@ -1,15 +1,3 @@
-##################################################
-# Only include Nothing Spacewar DTBs
-ifeq ($(CONFIG_NOTHING), y)
-ifneq ($(CONFIG_BUILD_ARM64_DT_OVERLAY),y)
-$(error Nothing DT w/o overlay is undefined!!!)
-endif
-
-dtbo-$(CONFIG_NOTHING_SPACEWAR) += nothing-spacewar-sm7325-overlay.dtbo
-
-nothing-spacewar-sm7325-overlay.dtbo-base := yupik.dtb
-endif
-
 ifneq ($(CONFIG_ARCH_QTI_VM), y)
 ifeq ($(CONFIG_BUILD_ARM64_DT_OVERLAY),y)
 dtbo-$(CONFIG_ARCH_LAHAINA) += lahaina-rumi-overlay.dtbo \
@@ -251,12 +239,32 @@ dtbo-$(CONFIG_ARCH_YUPIK) +=    \
 	yupik-iot-qrd-overlay.dtbo \
 	yupik-iot-hsp-overlay.dtbo \
 	yupik-iot-hsp-pm7250b-overlay.dtbo \
+	katmai-hsp-overlay.dtbo \
+	katmai-hsp-pm7250b-overlay.dtbo \
+	katmai-fp2-hsp-overlay.dtbo \
+	katmai-fp2-hsp-pm7250b-overlay.dtbo \
+	katmai-fp2p5-hsp-overlay.dtbo \
+	katmai-fp2p5-hsp-pm7250b-overlay.dtbo \
+	katmai-fp3-hsp-overlay.dtbo \
+	katmai-fp3-hsp-pm7250b-overlay.dtbo \
+	katmai-fp4-hsp-overlay.dtbo \
+	katmai-fp4-hsp-pm7250b-overlay.dtbo \
 	yupik-iot-idps-amoled-overlay.dtbo \
 	yupikp-iot-idp-overlay.dtbo \
 	yupikp-iot-idp-pm7250b-overlay.dtbo \
 	yupikp-iot-qrd-overlay.dtbo \
 	yupikp-iot-hsp-overlay.dtbo \
 	yupikp-iot-hsp-pm7250b-overlay.dtbo \
+	katmaip-hsp-overlay.dtbo \
+	katmaip-hsp-pm7250b-overlay.dtbo \
+	katmaip-fp2-hsp-overlay.dtbo \
+	katmaip-fp2-hsp-pm7250b-overlay.dtbo \
+	katmaip-fp2p5-hsp-overlay.dtbo \
+	katmaip-fp2p5-hsp-pm7250b-overlay.dtbo \
+	katmaip-fp3-hsp-overlay.dtbo \
+	katmaip-fp3-hsp-pm7250b-overlay.dtbo \
+	katmaip-fp4-hsp-overlay.dtbo \
+	katmaip-fp4-hsp-pm7250b-overlay.dtbo \
 	yupikp-iot-idps-amoled-overlay.dtbo
 
 
@@ -282,6 +290,12 @@ katmai-hsp-overlay.dtbo-base :=  katmai.dtb
 katmai-hsp-pm7250b-overlay.dtbo-base :=  katmai.dtb
 katmai-fp2-hsp-overlay.dtbo-base :=  katmai-fp2.dtb
 katmai-fp2-hsp-pm7250b-overlay.dtbo-base :=  katmai-fp2.dtb
+katmai-fp2p5-hsp-overlay.dtbo-base :=  katmai-fp2p5.dtb
+katmai-fp2p5-hsp-pm7250b-overlay.dtbo-base :=  katmai-fp2p5.dtb
+katmai-fp3-hsp-overlay.dtbo-base :=  katmai-fp3.dtb
+katmai-fp3-hsp-pm7250b-overlay.dtbo-base :=  katmai-fp3.dtb
+katmai-fp4-hsp-overlay.dtbo-base := katmai-fp4.dtb
+katmai-fp4-hsp-pm7250b-overlay.dtbo-base := katmai-fp4.dtb
 yupik-iot-idps-amoled-overlay.dtbo-base := yupik-iot.dtb katmai.dtb katmai-fp2.dtb
 yupikp-iot-idp-overlay.dtbo-base := yupikp-iot.dtb katmaip.dtb katmaip-fp2.dtb
 yupikp-iot-idp-pm7250b-overlay.dtbo-base := yupikp-iot.dtb katmaip.dtb katmaip-fp2.dtb
@@ -292,6 +306,12 @@ katmaip-hsp-overlay.dtbo-base := katmaip.dtb
 katmaip-hsp-pm7250b-overlay.dtbo-base := katmaip.dtb
 katmaip-fp2-hsp-overlay.dtbo-base := katmaip-fp2.dtb
 katmaip-fp2-hsp-pm7250b-overlay.dtbo-base := katmaip-fp2.dtb
+katmaip-fp2p5-hsp-overlay.dtbo-base := katmaip-fp2p5.dtb
+katmaip-fp2p5-hsp-pm7250b-overlay.dtbo-base := katmaip-fp2p5.dtb
+katmaip-fp3-hsp-overlay.dtbo-base := katmaip-fp3.dtb
+katmaip-fp3-hsp-pm7250b-overlay.dtbo-base := katmaip-fp3.dtb
+katmaip-fp4-hsp-overlay.dtbo-base := katmaip-fp4.dtb
+katmaip-fp4-hsp-pm7250b-overlay.dtbo-base := katmaip-fp4.dtb
 yupikp-iot-idps-amoled-overlay.dtbo-base := yupikp-iot.dtb katmaip.dtb katmaip-fp2.dtb
 else
 dtb-$(CONFIG_ARCH_YUPIK) += yupik-rumi.dtb \
@@ -507,6 +527,9 @@ dtb-$(CONFIG_ARCH_SDXLEMUR) += sdxlemur-rumi.dtb \
 	sdxlemur-v2-mtp-mbb-emmc-512mb.dtb \
 	sdxlemur-v2-mtp-mbb-m2-ep-usb.dtb \
 	sdxlemur-v2-mtp-mbb-m2-ep.dtb \
+	sdxlemur-v2-mtp-mbb-m2-ep-usb-512mb.dtb \
+	sdxlemur-v2-mtp-mbb-m2-ep.dtb \
+	sdxlemur-v2-mtp-mbb-m2-ep-512mb.dtb \
 	sdxlemur-v2-rcm-rc-pine1x.dtb \
 	sdxlemur-v2-rcm-rc-pine2x.dtb \
 	sdxlemur-v2-m2-ep-fwa.dtb \
