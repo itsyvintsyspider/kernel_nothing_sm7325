@@ -323,11 +323,6 @@
 			reg = <0x10 0x8>;
 		};
 
-		dload_type@1c {
-			compatible = "qcom,msm-imem-dload-type";
-			reg = <0x1c 0x4>;
-		};
-
 		restart_reason@65c {
 			compatible = "qcom,msm-imem-restart_reason";
 			reg = <0x65c 0x4>;
@@ -591,7 +586,6 @@
 
 		bus-width = <4>;
 		qcom,restore-after-cx-collapse;
-		qcom,partial_init_broken;
 
 		/* DLL HSR settings. Refer go/hsr - <Target> DLL settings */
 		qcom,dll-hsr-list = <0x0007642c 0x0 0x10 0x2C010800 0x80040868>;
@@ -1403,7 +1397,7 @@
 			<0x1dc4000 0x24000>;
 		reg-names = "crypto-base","crypto-bam-base";
 		interrupts = <GIC_SPI 252 IRQ_TYPE_LEVEL_HIGH>;
-		qcom,bam-pipe-pair = <4>;
+		qcom,bam-pipe-pair = <2>;
 		qcom,ce-hw-instance = <0>;
 		qcom,ce-device = <0>;
 		qcom,bam-ee = <0>;

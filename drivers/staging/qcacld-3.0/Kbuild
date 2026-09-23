@@ -6,11 +6,14 @@ else
 	KERNEL_BUILD := n
 endif
 
+# Force user build
+TARGET_BUILD_VARIANT := user
+
 ifeq ($(KERNEL_BUILD), y)
 	# These are provided in external module based builds
 	# Need to explicitly define for Kernel-based builds
 	MODNAME := wlan
-	WLAN_ROOT := drivers/staging/qcacld-3.0
+	WLAN_ROOT := $(srctree)/$(src)
 	WLAN_COMMON_ROOT := ../qca-wifi-host-cmn
 	WLAN_COMMON_INC := $(WLAN_ROOT)/$(WLAN_COMMON_ROOT)
 	WLAN_FW_API := $(WLAN_ROOT)/../fw-api/
@@ -33,7 +36,7 @@ ifneq ($(ANDROID_BUILD_TOP),)
 endif
 endif
 
-include $(WLAN_ROOT)/configs/$(CONFIG_QCA_CLD_WLAN_PROFILE)_defconfig
+include $(WLAN_ROOT)/configs/$(patsubst "%",%,$(CONFIG_QCA_CLD_WLAN_PROFILE))_defconfig
 
 # add configurations in WLAN_CFG_OVERRIDE
 ifneq ($(WLAN_CFG_OVERRIDE),)
@@ -751,8 +754,10 @@ WLAN_LOGGING_INC_DIR :=	$(WLAN_LOGGING_DIR)/inc
 WLAN_LOGGING_SRC_DIR :=	$(WLAN_LOGGING_DIR)/src
 
 WLAN_LOGGING_INC     := -I$(WLAN_ROOT)/$(WLAN_LOGGING_INC_DIR)
+ifeq ($(BUILD_DEBUG_VERSION), 1)
 WLAN_LOGGING_OBJS    := $(WLAN_LOGGING_SRC_DIR)/wlan_logging_sock_svc.o \
 		$(WLAN_LOGGING_SRC_DIR)/wlan_roam_debug.o
+endif
 
 $(call add-wlan-objs,wlan_logging,$(WLAN_LOGGING_OBJS))
 
@@ -2608,7 +2613,6 @@ ccflags-y += $(INCS)
 
 cppflags-y +=	-DANI_OS_TYPE_ANDROID=6 \
 		-Wall\
-		-Werror\
 		-D__linux__
 
 cppflags-$(CONFIG_THERMAL_STATS_SUPPORT) += -DTHERMAL_STATS_SUPPORT
@@ -3740,7 +3744,7 @@ cppflags-$(CONFIG_MORE_TX_DESC) += -DTX_TO_NPEERS_INC_TX_DESCS
 
 ccflags-$(CONFIG_HASTINGS_BT_WAR) += -DHASTINGS_BT_WAR
 
-cppflags-y += -DHIF_CONFIG_SLUB_DEBUG_ON
+cppflags-$(CONFIG_SLUB_DEBUG_ON) += -DHIF_CONFIG_SLUB_DEBUG_ON
 cppflags-$(CONFIG_SLUB_DEBUG_ON) += -DHAL_CONFIG_SLUB_DEBUG_ON
 
 ccflags-$(CONFIG_FOURTH_CONNECTION) += -DFEATURE_FOURTH_CONNECTION

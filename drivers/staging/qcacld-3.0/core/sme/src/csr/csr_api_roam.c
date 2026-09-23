@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2012-2020 The Linux Foundation. All rights reserved.
- * Copyright (c) 2022-2025 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) 2022-2024 Qualcomm Innovation Center, Inc. All rights reserved.
  *
  * Permission to use, copy, modify, and/or distribute this software for
  * any purpose with or without fee is hereby granted, provided that the
@@ -12611,16 +12611,20 @@ static QDF_STATUS csr_roam_start_wait_for_key_timer(
 {
 	QDF_STATUS status;
 	uint8_t session_id = mac->roam.WaitForKeyTimerInfo.vdev_id;
+#ifdef WLAN_DEBUG
 	tpCsrNeighborRoamControlInfo pNeighborRoamInfo =
 		&mac->roam.neighborRoamInfo[session_id];
+#endif
 
 	if (csr_neighbor_roam_is_handoff_in_progress(mac, session_id)) {
 		/* Disable heartbeat timer when hand-off is in progress */
+#ifdef WLAN_DEBUG
 		sme_debug("disabling HB timer in state: %s sub-state: %s",
 			mac_trace_get_neighbour_roam_state(
 				pNeighborRoamInfo->neighborRoamState),
 			mac_trace_getcsr_roam_sub_state(
 				mac->roam.curSubState[session_id]));
+#endif
 		mac->mlme_cfg->timeouts.heart_beat_threshold = 0;
 	}
 	sme_debug("csrScanStartWaitForKeyTimer");
@@ -21586,12 +21590,11 @@ csr_process_roam_sync_callback(struct mac_context *mac_ctx,
 	 * eapol. So the session->psk_pmk will be stale in PMKSA cached
 	 * SAE/OWE roaming case.
 	 */
-	akm_type = session->connectedProfile.AuthType;
-
 	if (roam_synch_data->authStatus == CSR_ROAM_AUTH_STATUS_AUTHENTICATED ||
-	    akm_type == eCSR_AUTH_TYPE_SAE ||
-	    akm_type == eCSR_AUTH_TYPE_FT_SAE ||
-	    akm_type == eCSR_AUTH_TYPE_OWE) {
+	    session->pCurRoamProfile->negotiatedAuthType ==
+	    eCSR_AUTH_TYPE_SAE ||
+	    session->pCurRoamProfile->negotiatedAuthType ==
+	    eCSR_AUTH_TYPE_OWE) {
 		csr_roam_substate_change(mac_ctx,
 				eCSR_ROAM_SUBSTATE_NONE, session_id);
 		/*
@@ -21616,7 +21619,8 @@ csr_process_roam_sync_callback(struct mac_context *mac_ctx,
 				 &session->connectedProfile.bssid);
 		sme_debug("Trying to find PMKID for " QDF_MAC_ADDR_FMT " AKM Type:%d",
 			  QDF_MAC_ADDR_REF(pmkid_cache->BSSID.bytes),
-			  akm_type);
+			  session->pCurRoamProfile->negotiatedAuthType);
+		akm_type = session->connectedProfile.AuthType;
 		mdie_present = session->connectedProfile.mdid.mdie_present;
 
 		if (csr_lookup_pmkid_using_bssid(mac_ctx, session,
@@ -21696,8 +21700,6 @@ csr_process_roam_sync_callback(struct mac_context *mac_ctx,
 					qdf_mem_zero(pmksa, sizeof(*pmksa));
 					qdf_mem_free(pmksa);
 				}
-			} else {
-				sme_debug("PMK not received from fw");
 			}
 			sme_debug("pmkid found for " QDF_MAC_ADDR_FMT " len %d",
 				  QDF_MAC_ADDR_REF(pmkid_cache->BSSID.bytes),
