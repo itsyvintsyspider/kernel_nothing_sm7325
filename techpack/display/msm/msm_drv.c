@@ -1008,12 +1008,7 @@ static int context_init(struct drm_device *dev, struct drm_file *file)
 
 static int msm_open(struct drm_device *dev, struct drm_file *file)
 {
-	int ret;
-
-	pr_info("NOX-DEBUG: msm_open enter comm=%s pid=%d\n", current->comm, current->pid);
-	ret = context_init(dev, file);
-	pr_info("NOX-DEBUG: msm_open exit ret=%d comm=%s\n", ret, current->comm);
-	return ret;
+	return context_init(dev, file);
 }
 
 static void context_close(struct msm_file_private *ctx)

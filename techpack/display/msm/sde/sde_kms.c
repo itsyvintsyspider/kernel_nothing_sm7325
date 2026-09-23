@@ -1138,7 +1138,6 @@ static void sde_kms_prepare_commit(struct msm_kms *kms,
 	struct sde_vm_ops *vm_ops;
 	int i, rc;
 
-	pr_info("NOX-DEBUG: sde_kms_prepare_commit enter comm=%s\n", current->comm);
 	if (!kms)
 		return;
 	sde_kms = to_sde_kms(kms);
@@ -1204,7 +1203,6 @@ static void sde_kms_commit(struct msm_kms *kms,
 	struct drm_crtc_state *old_crtc_state;
 	int i;
 
-	pr_info("NOX-DEBUG: sde_kms_commit enter comm=%s\n", current->comm);
 	if (!kms || !old_state)
 		return;
 	sde_kms = to_sde_kms(kms);
@@ -1479,7 +1477,6 @@ static void sde_kms_complete_commit(struct msm_kms *kms,
 	struct sde_vm_ops *vm_ops;
 	int i, rc = 0;
 
-	pr_info("NOX-DEBUG: sde_kms_complete_commit enter comm=%s\n", current->comm);
 	if (!kms || !old_state)
 		return;
 	sde_kms = to_sde_kms(kms);

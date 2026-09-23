@@ -8341,26 +8341,15 @@ int dsi_display_enable(struct dsi_display *display)
 	}
 	SDE_EVT32(SDE_EVTLOG_FUNC_ENTRY);
 
-	pr_info("NOX-DEBUG: dsi_display_enable enter comm=%s skip_op=%d\n",
-		current->comm, is_skip_op_required(display));
-
 	/*
 	 * Engine states and panel states are populated during splash
 	 * resource/trusted vm and hence we return early
 	 */
 	if (is_skip_op_required(display)) {
 
-		pr_info("NOX-DEBUG: dsi_display_config_ctrl_for_cont_splash enter comm=%s\n",
-			current->comm);
 		dsi_display_config_ctrl_for_cont_splash(display);
-		pr_info("NOX-DEBUG: dsi_display_config_ctrl_for_cont_splash exit comm=%s\n",
-			current->comm);
 
-		pr_info("NOX-DEBUG: dsi_display_splash_res_cleanup enter comm=%s\n",
-			current->comm);
 		rc = dsi_display_splash_res_cleanup(display);
-		pr_info("NOX-DEBUG: dsi_display_splash_res_cleanup exit rc=%d comm=%s\n",
-			rc, current->comm);
 		if (rc) {
 			DSI_ERR("Continuous splash res cleanup failed, rc=%d\n",
 				rc);
@@ -8369,11 +8358,7 @@ int dsi_display_enable(struct dsi_display *display)
 
 		display->panel->panel_initialized = true;
 		DSI_DEBUG("cont splash enabled, display enable not required\n");
-		pr_info("NOX-DEBUG: dsi_display_panel_id_notification enter comm=%s\n",
-			current->comm);
 		dsi_display_panel_id_notification(display);
-		pr_info("NOX-DEBUG: dsi_display_panel_id_notification exit comm=%s\n",
-			current->comm);
 
 		return 0;
 	}
@@ -8383,9 +8368,7 @@ int dsi_display_enable(struct dsi_display *display)
 	mode = display->panel->cur_mode;
 
 	if (mode->dsi_mode_flags & DSI_MODE_FLAG_DMS) {
-		pr_info("NOX-DEBUG: dsi_panel_post_switch enter comm=%s\n", current->comm);
 		rc = dsi_panel_post_switch(display->panel);
-		pr_info("NOX-DEBUG: dsi_panel_post_switch exit rc=%d comm=%s\n", rc, current->comm);
 		if (rc) {
 			DSI_ERR("[%s] failed to switch DSI panel mode, rc=%d\n",
 				   display->name, rc);
@@ -8393,9 +8376,7 @@ int dsi_display_enable(struct dsi_display *display)
 		}
 	} else if (!(display->panel->cur_mode->dsi_mode_flags &
 			DSI_MODE_FLAG_POMS)){
-		pr_info("NOX-DEBUG: dsi_panel_enable enter comm=%s\n", current->comm);
 		rc = dsi_panel_enable(display->panel);
-		pr_info("NOX-DEBUG: dsi_panel_enable exit rc=%d comm=%s\n", rc, current->comm);
 		if (rc) {
 			DSI_ERR("[%s] failed to enable DSI panel, rc=%d\n",
 			       display->name, rc);
