@@ -24,6 +24,13 @@ allowed_warnings = set([
     "mprotect.c:42",
     "signal.c:95",
     "signal.c:51",
+    # A_STATUS -> QDF_STATUS implicit enum cast in AOSPA's own unmodified
+    # qca-wifi-host-cmn source (drivers/staging/qca-wifi-host-cmn/hif/src/
+    # ce/ce_main.c) -- present byte-identical upstream on aospa/beryl, so
+    # their build simply doesn't enforce this warning as fatal. Both enums
+    # use compatible error-code semantics here; not worth diverging from
+    # AOSPA's proven-working driver source to silence a harmless cast.
+    "ce_main.c:2230",
  ])
 
 # Capture the name of the object file, can find it.
