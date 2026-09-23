@@ -15,6 +15,7 @@
 #include <linux/pm.h>
 #include <linux/printk.h>
 #include <linux/psci.h>
+#include <linux/rcupdate.h>
 #include <linux/reboot.h>
 #include <linux/slab.h>
 #include <linux/suspend.h>
@@ -183,7 +184,19 @@ static int psci_cpu_suspend(u32 state, unsigned long entry_point)
 	u32 fn;
 	bool deny = false;
 
-	trace_android_vh_psci_cpu_suspend(state, &deny);
+	/*
+	 * Called from the cpuidle enter path after rcu_idle_enter() --
+	 * this CPU's RCU is already in an extended quiescent state.
+	 * The tracepoint machinery behind trace_android_vh_psci_cpu_suspend()
+	 * needs an RCU-sched read-side section, which is illegal from an
+	 * idle CPU (matches lpm-levels.c's own trace_cpu_idle_enter/exit
+	 * calls, which use the same wrapper for the same reason).
+	 * Confirmed on a real device: this exact call, unguarded, corrupts
+	 * SCHED_SOFTIRQ's preempt_count by +0x200 when it races a core_ctl
+	 * CPU suspending via PSCI, producing "scheduling while atomic"
+	 * crashes with a different victim task each time.
+	 */
+	RCU_NONIDLE(trace_android_vh_psci_cpu_suspend(state, &deny));
 	if (deny)
 		return -EPERM;
 
