@@ -2143,6 +2143,22 @@ static void __migrate_hrtimers(unsigned int scpu, bool remove_pinned)
 {
 	struct hrtimer_cpu_base *old_base, *new_base;
 	unsigned long flags;
+	/*
+	 * hrtimer_quiesce_cpu() calls this from an IPI handler (hardirq
+	 * context), where local_bh_disable() is illegal (WARN_ON_ONCE(in_irq())
+	 * in __local_bh_disable_ip()) and unnecessary (softirqs can't run
+	 * during hardirq anyway). Only take the bh-disable path when actually
+	 * in process context, matching hrtimers_dead_cpu()'s own callsite.
+	 * Confirmed on a real device: unconditional local_bh_disable() here,
+	 * with no matching local_bh_enable() in this function at all, leaked
+	 * SOFTIRQ_DISABLE_OFFSET (0x200) into preempt_count on every call --
+	 * hrtimers_dead_cpu()'s own outer disable/enable pair only cancelled
+	 * one of the two nested disables, and hrtimer_quiesce_cpu() had no
+	 * wrapping of its own at all. Corrupted preempt_count then produced
+	 * "scheduling while atomic" crashes with a different victim task
+	 * each time, on whichever CPU last ran this path.
+	 */
+	bool bh_disable = !in_interrupt();
 	int i;
 
 	local_irq_save(flags);
@@ -2153,7 +2169,8 @@ static void __migrate_hrtimers(unsigned int scpu, bool remove_pinned)
 	 * not wakeup ksoftirqd (and acquire the pi-lock) while
 	 * holding the cpu_base lock
 	 */
-	local_bh_disable();
+	if (bh_disable)
+		local_bh_disable();
 	local_irq_disable();
 	old_base = &per_cpu(hrtimer_bases, scpu);
 	new_base = this_cpu_ptr(&hrtimer_bases);
@@ -2180,6 +2197,8 @@ static void __migrate_hrtimers(unsigned int scpu, bool remove_pinned)
 
 	/* Check, if we got expired work to do */
 	__hrtimer_peek_ahead_timers();
+	if (bh_disable)
+		local_bh_enable();
 	local_irq_restore(flags);
 }
 
