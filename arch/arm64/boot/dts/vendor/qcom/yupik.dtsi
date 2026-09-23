@@ -4553,6 +4553,7 @@
 		memory-region = <&pil_mpss_mem>;
 		qcom,signal-aop;
 		qcom,complete-ramdump;
+		qcom,ignore-ssr-failure;
 
 		interconnects = <&mc_virt MASTER_LLCC &mc_virt SLAVE_EBI1>;
 
