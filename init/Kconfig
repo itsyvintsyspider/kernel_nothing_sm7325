@@ -53,6 +53,34 @@ config CC_CAN_LINK
 	default $(success,$(srctree)/scripts/cc-can-link.sh $(CC) $(m64-flag)) if 64BIT
 	default $(success,$(srctree)/scripts/cc-can-link.sh $(CC) $(m32-flag))
 
+choice
+    prompt "Fake uname kernel version"
+    default FAKE_UNAME_NONE
+    help
+      Kernel side spoof for BPF.
+
+config FAKE_UNAME_NONE
+    bool "None"
+    help
+      Don't spoof uname version.
+
+config FAKE_UNAME_5_10
+	bool "5.10"
+
+config FAKE_UNAME_5_15
+	bool "5.15"
+
+config FAKE_UNAME_6_1
+	bool "6.1"
+
+config FAKE_UNAME_6_6
+	bool "6.6"
+
+config FAKE_UNAME_6_12
+	bool "6.12"
+
+endchoice
+
 config CC_HAS_ASM_GOTO
 	def_bool $(success,$(srctree)/scripts/gcc-goto.sh $(CC))
 
@@ -163,6 +191,22 @@ config LOCALVERSION_AUTO
 	    $ git rev-parse --verify HEAD
 
 	  which is done within the script "scripts/setlocalversion".)
+
+menuconfig UNAME_OVERRIDE
+	bool "Override uname output for specific processes"
+	help
+	  This will modify struct new_utsname->release string's return value
+	  to another string on a specified process.
+
+if UNAME_OVERRIDE
+
+config UNAME_OVERRIDE_TARGET
+	string "Target process' cmdline for uname override"
+
+config UNAME_OVERRIDE_STRING
+	string "New uname's release string for uname override"
+
+endif
 
 config BUILD_SALT
        string "Build ID Salt"
