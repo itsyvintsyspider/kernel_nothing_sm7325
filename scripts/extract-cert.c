@@ -36,7 +36,7 @@ static __attribute__((noreturn))
 void format(void)
 {
 	fprintf(stderr,
-		"Usage: scripts/extract-cert <source> <dest>\n");
+			"Usage: scripts/extract-cert <source> <dest>\n");
 	exit(2);
 }
 
@@ -67,13 +67,13 @@ static void drain_openssl_errors(void)
 }
 
 #define ERR(cond, fmt, ...)				\
-	do {						\
-		bool __cond = (cond);			\
-		display_openssl_errors(__LINE__);	\
-		if (__cond) {				\
-			err(1, fmt, ## __VA_ARGS__);	\
-		}					\
-	} while(0)
+do {						\
+	bool __cond = (cond);			\
+	display_openssl_errors(__LINE__);	\
+	if (__cond) {				\
+		err(1, fmt, ## __VA_ARGS__);	\
+	}					\
+} while(0)
 
 static const char *key_pass;
 static BIO *wb;
@@ -104,7 +104,7 @@ int main(int argc, char **argv)
 
 	kbuild_verbose = atoi(getenv("KBUILD_VERBOSE")?:"0");
 
-        key_pass = getenv("KBUILD_SIGN_PIN");
+	key_pass = getenv("KBUILD_SIGN_PIN");
 
 	if (argc != 3)
 		format();
@@ -119,6 +119,7 @@ int main(int argc, char **argv)
 		fclose(f);
 		exit(0);
 	} else if (!strncmp(cert_src, "pkcs11:", 7)) {
+		#ifndef OPENSSL_IS_BORINGSSL
 		ENGINE *e;
 		struct {
 			const char *cert_id;
@@ -141,6 +142,16 @@ int main(int argc, char **argv)
 		ENGINE_ctrl_cmd(e, "LOAD_CERT_CTRL", 0, &parms, NULL, 1);
 		ERR(!parms.cert, "Get X.509 from PKCS#11");
 		write_cert(parms.cert);
+		#else
+		/*
+		 * BoringSSL's <openssl/engine.h> only carries the
+		 * ENGINE_new()/ENGINE_free() method-registration API - it
+		 * never implemented PKCS#11 ENGINE loading, so this build
+		 * has no way to honor a pkcs11: cert source.
+		 */
+		ERR(1, "pkcs11: certificate sources require OpenSSL's ENGINE API, "
+		"not available with this BoringSSL host toolchain");
+		#endif
 	} else {
 		BIO *b;
 		X509 *x509;
@@ -153,10 +164,10 @@ int main(int argc, char **argv)
 			if (wb && !x509) {
 				unsigned long err = ERR_peek_last_error();
 				if (ERR_GET_LIB(err) == ERR_LIB_PEM &&
-				    ERR_GET_REASON(err) == PEM_R_NO_START_LINE) {
+					ERR_GET_REASON(err) == PEM_R_NO_START_LINE) {
 					ERR_clear_error();
-					break;
-				}
+				break;
+					}
 			}
 			ERR(!x509, "%s", cert_src);
 			write_cert(x509);
