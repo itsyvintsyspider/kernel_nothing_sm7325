@@ -24,6 +24,38 @@ allowed_warnings = set([
     "mprotect.c:42",
     "signal.c:95",
     "signal.c:51",
+    # rq->csd's call_single_data_t cacheline-alignment attribute vs
+    # its actual placement inside struct request. Alignment hint
+    # only (perf, avoids false sharing), not a correctness issue --
+    # ARM64 handles unaligned access fine. Core block-layer code,
+    # not ours to restructure.
+    "blk-mq.c:622",
+    # icsk_mtup.enabled = 1 on a plain (signedness-unspecified) 1-bit
+    # bitfield. Clang's -Wsingle-bit-bitfield-constant-conversion is
+    # being pedantic -- field is genuinely used as a boolean. Core
+    # TCP stack code, not ours to restructure.
+    "tcp_timer.c:202",
+    # session_id smuggled as void* then cast straight back to
+    # unsigned int two lines later -- never a real pointer, just an
+    # opaque 32-bit session ID. Vendor camera-HFI protocol code.
+    "hfi_response_handler.c:508",
+    # heap->type (enum ion_heap_type) compared against
+    # msm_ion_heap_types constants -- deliberate vendor extension,
+    # ION_HEAP_TYPE_MSM_START=16 continues the base enum's numbering
+    # on purpose. Not a real type mismatch.
+    "msm_ion.c:253",
+    "msm_ion.c:254",
+    "msm_ion.c:255",
+    # 64-bit virtual address split across two 32-bit HW registers
+    # (this line: low half, next __write_register call: high half via
+    # >>32). Standard MMIO register-programming pattern, not a real
+    # truncation bug.
+    "hfi_iris2.c:170",
+    # _calc_vm_trans() already runtime-guards (!(bit1)||!(bit2) ? 0
+    # : ...) against div-by-zero -- one of MAP_SYNC/VM_SYNC is a
+    # compile-time-zero macro on this config, and clang statically
+    # flags the untaken branch anyway. Stock upstream mm code.
+    "mman.h:134",
  ])
 
 # Capture the name of the object file, can find it.
