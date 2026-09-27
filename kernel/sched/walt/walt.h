@@ -209,7 +209,7 @@ extern int core_ctl_init(void);
 #ifdef CONFIG_CPU_FREQ
 extern int cpu_boost_init(void);
 #else
-static inline int cpu_boost_init(void) { }
+static inline int cpu_boost_init(void) { return 0; }
 #endif
 
 #else /* CONFIG_SCHED_WALT */
