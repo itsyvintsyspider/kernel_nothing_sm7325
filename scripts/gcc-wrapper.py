@@ -56,6 +56,19 @@ allowed_warnings = set([
     # compile-time-zero macro on this config, and clang statically
     # flags the untaken branch anyway. Stock upstream mm code.
     "mman.h:134",
+    # Ignored return values in vendor drivers (regulator_enable/kstrtol/
+    # copy_to_user/PTR_ERR on best-effort paths). Same code as CLO and
+    # Nothing's tree; clang's -Wunused-result just flags it.
+    "nt36xxx.c:928",
+    "msm_performance.c:918",
+    "spss_utils.c:560",
+    "max31760_fan.c:331",
+    # dp_ipa_setup() keeps big on-stack QDF/IPA setup structs. Vendor
+    # WiFi datapath code, runs once at bring-up, not a hot path.
+    "dp_ipa.c:1289",
+    "nt36xxx.c:935",
+    "spss_utils.c:572",
+    "spss_utils.c:584",
  ])
 
 # Capture the name of the object file, can find it.
