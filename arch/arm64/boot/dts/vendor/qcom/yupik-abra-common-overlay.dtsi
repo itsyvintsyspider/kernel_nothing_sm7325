@@ -12,5 +12,12 @@
 	reg = <0x0 0x83A00000 0x0 0x400000>;
 	console-size = <0x200000>;
 	pmsg-size = <0x200000>;
+	/*
+	 * Base yupik.dtsi maps ramoops fully cached (mem-type 2). A watchdog
+	 * bite warm reset does not flush CPU caches, so the last console
+	 * lines before a crash never reach DRAM. Use a non-cached mapping so
+	 * the console record is complete.
+	 */
+	mem-type = <1>;
 };
 
