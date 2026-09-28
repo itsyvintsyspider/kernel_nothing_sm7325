@@ -307,38 +307,6 @@ QDF_STATUS hif_snoc_enable_bus(struct hif_softc *ol_sc,
 	return QDF_STATUS_SUCCESS;
 }
 
-#ifdef FEATURE_RUNTIME_PM
-/**
- * hif_snoc_get_rpm_ctx() - Map corresponding hif_runtime_pm_ctx
- * @scn: hif context
- *
- * This function will map and return the corresponding
- * hif_runtime_pm_ctx based on snoc interface.
- *
- * Return: struct hif_runtime_pm_ctx pointer
- */
-struct hif_runtime_pm_ctx *hif_snoc_get_rpm_ctx(struct hif_softc *scn)
-{
-	struct HIF_CE_state *sc = HIF_GET_CE_STATE(scn);
-
-	return &sc->rpm_ctx;
-}
-
-/**
- * hif_snoc_get_dev() - Map corresponding device structure
- * @scn: hif context
- *
- * This function will map and return the corresponding
- * device structure based on snoc interface.
- *
- * Return: struct device pointer
- */
-struct device *hif_snoc_get_dev(struct hif_softc *scn)
-{
-	return scn->qdf_dev->dev;
-}
-#endif
-
 /**
  * hif_disable_bus(): hif_disable_bus
  *
