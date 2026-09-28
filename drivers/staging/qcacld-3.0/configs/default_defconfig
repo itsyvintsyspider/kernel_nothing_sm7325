@@ -511,7 +511,15 @@ CONFIG_MARK_ICMP_REQ_TO_FW := y
 CONFIG_VERBOSE_DEBUG := y
 CONFIG_RX_DESC_SANITY_WAR := y
 ifeq ($(CONFIG_PCI_MSM), y)
-	CONFIG_FEATURE_HAL_DELAYED_REG_WRITE := y
+	# CONFIG_PCI_MSM is a platform-level "does this SoC have a PCI
+	# controller" flag, true here regardless of which bus our WLAN chip
+	# actually uses -- it does not mean our WLAN backend is PCI. Same
+	# SNOC exclusion as the QCA6750-specific block below; see there for
+	# why (hif_prevent/allow_link_low_power_states real bodies only
+	# exist under hif/src/{pcie,ipcie}).
+	ifneq ($(CONFIG_PLD_SNOC_ICNSS_FLAG), y)
+		CONFIG_FEATURE_HAL_DELAYED_REG_WRITE := y
+	endif
 ifeq ($(CONFIG_CNSS_QCA6390), y)
 	CONFIG_SHADOW_WRITE_DELAY := y
 endif
