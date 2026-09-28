@@ -539,7 +539,13 @@ endif
 ifeq ($(CONFIG_CNSS_QCA6750), y)
 	CONFIG_QCA6750_HEADERS_DEF := y
 	CONFIG_QCA_WIFI_QCA6750 := y
-	CONFIG_FEATURE_HAL_DELAYED_REG_WRITE := y
+	# hif_prevent/allow_link_low_power_states() only have real bodies in
+	# hif/src/{pcie,ipcie}/if_{pci,ipci}.c; a SNOC-attached QCA6750 (ours)
+	# never compiles either, so unconditionally enabling this here links
+	# with an undefined symbol. Reference config assumed PCI/IPCI always.
+	ifneq ($(CONFIG_PLD_SNOC_ICNSS_FLAG), y)
+		CONFIG_FEATURE_HAL_DELAYED_REG_WRITE := y
+	endif
 	CONFIG_IPA_SET_RESET_TX_DB_PA := y
 	ifeq ($(CONFIG_WDI3_STATS_UPDATE), y)
 		CONFIG_WDI3_STATS_BW_MONITOR := y
@@ -556,7 +562,12 @@ CONFIG_DP_INTR_POLL_BASED := y
 CONFIG_TX_PER_PDEV_DESC_POOL := y
 CONFIG_DP_TRACE := y
 CONFIG_FEATURE_TSO := y
-CONFIG_FEATURE_FORCE_WAKE := y
+# Same reasoning as CONFIG_FEATURE_HAL_DELAYED_REG_WRITE above:
+# hif_force_wake_request/release() only have real bodies under
+# hif/src/{pcie,ipcie}, never compiled for a SNOC-attached board.
+ifneq ($(CONFIG_PLD_SNOC_ICNSS_FLAG), y)
+	CONFIG_FEATURE_FORCE_WAKE := y
+endif
 CONFIG_DP_LFR := y
 CONFIG_DUP_RX_DESC_WAR := y
 CONFIG_HTT_PADDR64 := y
