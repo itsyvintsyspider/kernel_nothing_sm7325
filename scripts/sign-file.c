@@ -144,6 +144,7 @@ static EVP_PKEY *read_private_key(const char *private_key_name)
 	EVP_PKEY *private_key;
 
 	if (!strncmp(private_key_name, "pkcs11:", 7)) {
+#ifndef OPENSSL_IS_BORINGSSL
 		ENGINE *e;
 
 		ENGINE_load_builtin_engines();
@@ -160,6 +161,17 @@ static EVP_PKEY *read_private_key(const char *private_key_name)
 		private_key = ENGINE_load_private_key(e, private_key_name,
 						      NULL, NULL);
 		ERR(!private_key, "%s", private_key_name);
+#else
+		/*
+		 * BoringSSL's <openssl/engine.h> only carries the
+		 * ENGINE_new()/ENGINE_free() method-registration API - it
+		 * never implemented PKCS#11 ENGINE loading, so this build
+		 * has no way to honor a pkcs11: private key source.
+		 */
+		private_key = NULL;
+		ERR(1, "pkcs11: key sources require OpenSSL's ENGINE API, "
+		       "not available with this BoringSSL host toolchain");
+#endif
 	} else {
 		BIO *b;
 
