@@ -273,7 +273,7 @@ int clear_kernel_boot_log(struct file *target_partition_file, int offset) {
 		goto out;
 	}
 	for(i = 0; i < BOOT_LOG_PAGES; i++) {
-		if( __write_buf_to_target_partition(target_partition_file, buf, NT_PAGE_SIZE, offset+(i * BOOT_LOG_PAGES))){
+		if( __write_buf_to_target_partition(target_partition_file, buf, NT_PAGE_SIZE, offset + (i * NT_PAGE_SIZE))){
 			goto out;
 		}
 	}
