@@ -178,14 +178,19 @@
 &dsi_rm692e5_visionox_amoled_120hz_cmd {
 	qcom,dsi-select-clocks = "mux_byte_clk0", "mux_pixel_clk0";
 	/*
-	 * Every other multi-timing panel in this file gets these two
+	 * Every other multi-timing panel in this file gets these three
 	 * properties (nt36672e_*_video, r66451_amoled_*hz_video_cphy); this
 	 * one was missing them, which left it exposing only timing@0 (120Hz)
 	 * to DRM despite the timing@1/timing@2 (90/60Hz) nodes below being
-	 * fully populated. Bring-up finding, not yet confirmed on hardware.
+	 * fully populated. First attempt (dfps-list + enable-dynamic-fps
+	 * only) was confirmed live to be incomplete: dsi_panel_get() failed
+	 * with "dfps type not defined, rc=-22" because pan-fps-update was
+	 * still missing -- dsi_panel_parse_dfps_caps() requires all three
+	 * together or fails the whole parse.
 	 */
 	qcom,dsi-supported-dfps-list = <120 90 60>;
 	qcom,mdss-dsi-pan-enable-dynamic-fps;
+	qcom,mdss-dsi-pan-fps-update = "dfps_immediate_porch_mode_vfp";
 	qcom,dynamic-mode-switch-enabled;
 	qcom,dynamic-mode-switch-type = "dynamic-resolution-switch-immediate";
 	qcom,dsi-dyn-clk-enable;
