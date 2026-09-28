@@ -1384,8 +1384,11 @@ struct dentry *mount_bdev(struct file_system_type *fs_type,
 		mode |= FMODE_WRITE;
 
 	bdev = blkdev_get_by_path(dev_name, mode, fs_type);
-	if (IS_ERR(bdev))
+	if (IS_ERR(bdev)) {
+		pr_err("CDBG mount_bdev: %s blkdev_get_by_path(%s, mode=0x%x) err=%ld\n",
+		       fs_type->name, dev_name, mode, PTR_ERR(bdev));
 		return ERR_CAST(bdev);
+	}
 
 	/*
 	 * once the super is inserted into the list by sget, s_umount
@@ -1401,8 +1404,10 @@ struct dentry *mount_bdev(struct file_system_type *fs_type,
 	s = sget(fs_type, test_bdev_super, set_bdev_super, flags | SB_NOSEC,
 		 bdev);
 	mutex_unlock(&bdev->bd_fsfreeze_mutex);
-	if (IS_ERR(s))
+	if (IS_ERR(s)) {
+		pr_err("CDBG mount_bdev: %s sget err=%ld\n", fs_type->name, PTR_ERR(s));
 		goto error_s;
+	}
 
 	if (s->s_root) {
 		if ((flags ^ s->s_flags) & SB_RDONLY) {
@@ -1425,8 +1430,10 @@ struct dentry *mount_bdev(struct file_system_type *fs_type,
 		s->s_mode = mode;
 		snprintf(s->s_id, sizeof(s->s_id), "%pg", bdev);
 		sb_set_blocksize(s, block_size(bdev));
+		pr_err("CDBG mount_bdev: %s calling fill_super dev=%s\n", fs_type->name, dev_name);
 		error = fill_super(s, data, flags & SB_SILENT ? 1 : 0);
 		if (error) {
+			pr_err("CDBG mount_bdev: %s fill_super err=%d\n", fs_type->name, error);
 			deactivate_locked_super(s);
 			goto error;
 		}
@@ -1556,8 +1563,11 @@ int vfs_get_tree(struct fs_context *fc)
 	 * on the superblock.
 	 */
 	error = fc->ops->get_tree(fc);
-	if (error < 0)
+	if (error < 0) {
+		pr_err("CDBG vfs_get_tree: %s ->get_tree err=%d\n",
+		       fc->fs_type->name, error);
 		return error;
+	}
 
 	if (!fc->root) {
 		pr_err("Filesystem %s get_tree() didn't set fc->root\n",
@@ -1582,6 +1592,8 @@ int vfs_get_tree(struct fs_context *fc)
 
 	error = security_sb_set_mnt_opts(sb, fc->security, 0, NULL);
 	if (unlikely(error)) {
+		pr_err("CDBG vfs_get_tree: %s security_sb_set_mnt_opts err=%d\n",
+		       fc->fs_type->name, error);
 		fc_drop_locked(fc);
 		return error;
 	}

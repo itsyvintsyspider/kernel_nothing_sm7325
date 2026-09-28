@@ -2932,12 +2932,16 @@ static int do_new_mount(struct path *path, const char *fstype, int sb_flags,
 	const char *subtype = NULL;
 	int err = 0;
 
-	if (!fstype)
+	if (!fstype) {
+		pr_err("CDBG do_new_mount: no fstype\n");
 		return -EINVAL;
+	}
 
 	type = get_fs_type(fstype);
-	if (!type)
+	if (!type) {
+		pr_err("CDBG do_new_mount: unknown fstype %s\n", fstype);
 		return -ENODEV;
+	}
 
 	if (type->fs_flags & FS_HAS_SUBTYPE) {
 		subtype = strchr(fstype, '.');
@@ -2952,22 +2956,38 @@ static int do_new_mount(struct path *path, const char *fstype, int sb_flags,
 
 	fc = fs_context_for_mount(type, sb_flags);
 	put_filesystem(type);
-	if (IS_ERR(fc))
+	if (IS_ERR(fc)) {
+		pr_err("CDBG do_new_mount: fs_context_for_mount %s err=%ld\n",
+		       fstype, PTR_ERR(fc));
 		return PTR_ERR(fc);
+	}
 
 	if (subtype)
 		err = vfs_parse_fs_string(fc, "subtype",
 					  subtype, strlen(subtype));
-	if (!err && name)
+	if (!err && name) {
 		err = vfs_parse_fs_string(fc, "source", name, strlen(name));
-	if (!err)
+		if (err)
+			pr_err("CDBG do_new_mount: parse source err=%d fs=%s\n", err, fstype);
+	}
+	if (!err) {
 		err = parse_monolithic_mount_data(fc, data);
+		if (err)
+			pr_err("CDBG do_new_mount: parse_monolithic err=%d fs=%s\n", err, fstype);
+	}
 	if (!err && !mount_capable(fc))
 		err = -EPERM;
-	if (!err)
+	if (!err) {
 		err = vfs_get_tree(fc);
-	if (!err)
+		if (err)
+			pr_err("CDBG do_new_mount: vfs_get_tree err=%d fs=%s src=%s\n",
+			       err, fstype, name ? name : "?");
+	}
+	if (!err) {
 		err = do_new_mount_fc(fc, path, mnt_flags);
+		if (err)
+			pr_err("CDBG do_new_mount: do_new_mount_fc err=%d fs=%s\n", err, fstype);
+	}
 
 	put_fs_context(fc);
 	return err;
@@ -3495,6 +3515,10 @@ int ksys_mount(const char __user *dev_name, const char __user *dir_name,
 		goto out_data;
 
 	ret = do_mount(kernel_dev, dir_name, kernel_type, flags, options);
+	if (ret < 0 && kernel_type && (!strcmp(kernel_type, "ext4") ||
+				       !strcmp(kernel_type, "erofs")))
+		pr_err("CDBG ksys_mount %s dev=%s flags=0x%lx ret=%d comm=%s\n",
+		       kernel_type, kernel_dev, flags, ret, current->comm);
 
 	kfree(options);
 out_data:

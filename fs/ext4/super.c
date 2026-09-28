@@ -3745,6 +3745,8 @@ static int ext4_fill_super(struct super_block *sb, void *data, int silent)
 
 	/* -EINVAL is default */
 	ret = -EINVAL;
+	pr_err("CDBG ext4_fill_super enter dev=%s silent=%d flags=0x%lx\n",
+	       sb->s_id, silent, sb->s_flags);
 	blocksize = sb_min_blocksize(sb, EXT4_MIN_BLOCK_SIZE);
 	if (!blocksize) {
 		ext4_msg(sb, KERN_ERR, "unable to set blocksize");
@@ -4756,6 +4758,9 @@ no_journal:
 	return 0;
 
 cantfind_ext4:
+	pr_err("CDBG ext4 cantfind dev=%s silent=%d magic=0x%x blocksize=%d sb_block=%llu ret=%d\n",
+	       sb->s_id, silent, sb->s_magic, blocksize,
+	       (unsigned long long)logical_sb_block, ret);
 	if (!silent)
 		ext4_msg(sb, KERN_ERR, "VFS: Can't find ext4 filesystem");
 	goto failed_mount;
@@ -4838,6 +4843,8 @@ out_free_base:
 	kfree(sbi);
 	kfree(orig_data);
 	fs_put_dax(dax_dev);
+	pr_err("CDBG ext4_fill_super failed dev=%s err=%d ret=%d silent=%d\n",
+	       sb->s_id, err, ret, silent);
 	return err ? err : ret;
 }
 
