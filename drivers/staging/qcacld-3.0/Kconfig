@@ -9,6 +9,20 @@ config QCA_CLD_WLAN
 
 if QCA_CLD_WLAN != n
 
+config WLAN_RESIDENT_DRIVER
+	bool "Build WLAN as a resident (built-in) driver with a real init"
+	depends on QCA_CLD_WLAN = y
+	default y
+	help
+	  When QCA_CLD_WLAN is built directly into the kernel, MODULE is
+	  not defined for its objects, so wlan_hdd_main.c's own
+	  hdd_module_init() only registers a sysfs trigger and never calls
+	  hdd_driver_load() -- WiFi never actually loads. This builds
+	  wlan_hdd_main_module.c instead, whose module_init() calls
+	  hdd_driver_load() directly.
+
+	  Say Y whenever QCA_CLD_WLAN is built-in (=y).
+
 config QCACLD_WLAN_LFR3
 	bool "Enable the WLAN Legacy Fast Roaming feature Version 3"
 	default n
