@@ -1367,6 +1367,12 @@ config SDX_EXT_IPC
 
       If unsure, say N.
 
+config NOTHING_POWERINFO_RPMH
+	bool "RPMH move to sysfs"
+	default n
+	help
+		This option changes sys/power/soc_sleep and soc/power/rpmh_stats
+
 source "drivers/soc/qcom/icnss2/Kconfig"
 
 source "drivers/soc/qcom/gnsssirf/Kconfig"

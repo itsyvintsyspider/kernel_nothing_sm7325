@@ -39,6 +39,9 @@ struct soc_sleep_stats_data {
 	const struct stats_config *config;
 	struct kobject *kobj;
 	struct kobj_attribute ka;
+#ifdef CONFIG_NOTHING_POWERINFO_RPMH
+	struct kobj_attribute ka_stat_nt;
+#endif
 	void __iomem *reg;
 };
 
@@ -66,6 +69,83 @@ static inline u64 get_time_in_sec(u64 counter)
 
 	return counter;
 }
+
+#ifdef CONFIG_NOTHING_POWERINFO_RPMH
+static inline u64 get_time_in_msec(u64 counter)
+{
+	do_div(counter, arch_timer_get_rate()/1000);
+
+	return counter;
+}
+
+static inline ssize_t nt_append_data_to_buf(int index, char *buf, int length, struct stats_entry *stat)
+{
+	if(index == 0) {
+		//vddlow: aosd AOSD deep sleep
+		return scnprintf(buf, length, "vlow:%x:%llx\n", stat->entry.count, stat->entry.accumulated);
+	} else if (index == 1){
+		//vddmin: cxsd: cx collapse
+		return scnprintf(buf, length, "vmin:%x:%llx\r\n", stat->entry.count, stat->entry.accumulated);
+	} else {
+		return 0;
+	}
+}
+
+static ssize_t nt_rpmh_stats_show(struct kobject *obj, struct kobj_attribute *attr, char *buf) 
+{
+	int i;
+	uint32_t offset;
+	ssize_t length = 0, op_length;
+	struct stats_entry data;
+	struct entry *e = &data.entry;
+	struct appended_entry *ae = &data.appended_entry;
+	struct soc_sleep_stats_data *drv = container_of(attr, struct soc_sleep_stats_data, ka_stat_nt);
+	void __iomem *reg = drv->reg;
+
+
+	for (i = 0; i < drv->config->num_records; i++) {
+		offset = offsetof(struct entry, stat_type);
+		e->stat_type = le32_to_cpu(readl_relaxed(reg + offset));
+
+		offset = offsetof(struct entry, count);
+		e->count = le32_to_cpu(readl_relaxed(reg + offset));
+
+		offset = offsetof(struct entry, last_entered_at);
+		e->last_entered_at = le64_to_cpu(readq_relaxed(reg + offset));
+
+		offset = offsetof(struct entry, last_exited_at);
+		e->last_exited_at = le64_to_cpu(readq_relaxed(reg + offset));
+
+		offset = offsetof(struct entry, accumulated);
+		e->accumulated = le64_to_cpu(readq_relaxed(reg + offset));
+
+		e->last_entered_at = get_time_in_msec(e->last_entered_at);
+		e->last_exited_at = get_time_in_msec(e->last_exited_at);
+		e->accumulated = get_time_in_msec(e->accumulated);
+
+		reg += sizeof(struct entry);
+
+		if (drv->config->appended_stats_avail) {
+			offset = offsetof(struct appended_entry, client_votes);
+			ae->client_votes = le32_to_cpu(readl_relaxed(reg +
+								     offset));
+
+			reg += sizeof(struct appended_entry);
+		} else {
+			ae->client_votes = 0;
+		}
+
+		op_length = nt_append_data_to_buf(i, buf + length, PAGE_SIZE - length,
+					       &data);
+		if (op_length >= PAGE_SIZE - length)
+			goto exit;
+
+		length += op_length;
+	}
+    exit:
+		return length;
+}
+#endif
 
 static inline ssize_t append_data_to_buf(char *buf, int length,
 					 struct stats_entry *data)
@@ -144,6 +224,30 @@ exit:
 	return length;
 }
 
+#ifdef CONFIG_NOTHING_POWERINFO_RPMH
+static int soc_sleep_stats_create_sysfs(struct platform_device *pdev,
+					struct soc_sleep_stats_data *drv)
+{
+	int ret = 0;
+	drv->kobj = kobject_create_and_add("soc_sleep", power_kobj);
+	if (!drv->kobj)
+		return -ENOMEM;
+
+	sysfs_attr_init(&drv->ka.attr);
+	drv->ka.attr.mode = 0444;
+	drv->ka.attr.name = "stats";
+	drv->ka.show = stats_show;
+
+    sysfs_attr_init(&drv->ka_stat_nt.attr);
+	drv->ka_stat_nt.attr.mode = 0444;
+	drv->ka_stat_nt.attr.name = "nt_rpmh_stats";
+	drv->ka_stat_nt.show = nt_rpmh_stats_show;
+
+    ret = sysfs_create_file(drv->kobj, &drv->ka.attr);
+    ret |= sysfs_create_file(drv->kobj, &drv->ka_stat_nt.attr);
+	return ret;
+}
+#else
 static int soc_sleep_stats_create_sysfs(struct platform_device *pdev,
 					struct soc_sleep_stats_data *drv)
 {
@@ -158,6 +262,7 @@ static int soc_sleep_stats_create_sysfs(struct platform_device *pdev,
 
 	return sysfs_create_file(drv->kobj, &drv->ka.attr);
 }
+#endif
 
 static const struct stats_config legacy_rpm_data = {
 	.num_records = 2,
@@ -237,6 +342,9 @@ static int soc_sleep_stats_remove(struct platform_device *pdev)
 	struct soc_sleep_stats_data *drv = platform_get_drvdata(pdev);
 
 	sysfs_remove_file(drv->kobj, &drv->ka.attr);
+#ifdef CONFIG_NOTHING_POWERINFO_RPMH
+    sysfs_remove_file(drv->kobj, &drv->ka_stat_nt.attr);
+#endif
 	kobject_put(drv->kobj);
 
 	return 0;
