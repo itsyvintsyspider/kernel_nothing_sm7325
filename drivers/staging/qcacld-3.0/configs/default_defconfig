@@ -114,16 +114,22 @@ ifeq (y,$(findstring y,$(CONFIG_ICNSS) $(CONFIG_ICNSS_MODULE)))
 	CONFIG_PLD_SNOC_ICNSS_FLAG := y
 endif
 
-ifeq ($(CONFIG_LITHIUM), y)
-ifeq ($(CONFIG_CNSS_QCA6750), y)
-	CONFIG_ROME_IF = ipci
-	CONFIG_PLD_IPCI_ICNSS_FLAG := y
-endif
-else ifeq (y,$(findstring y,$(CONFIG_ICNSS2) $(CONFIG_ICNSS2_MODULE)))
+# A board wired for SNOC (icnss2, e.g. our wcn6750) must win over the
+# chip-name-based IPCI guess below: CNSS_QCA6750 alone forces LITHIUM,
+# and LITHIUM+CNSS_QCA6750 was unconditionally assumed to mean IPCI,
+# even on boards whose devicetree only has an icnss2/wcn6750 node and
+# no ipci/pcie WLAN node at all. Checking ICNSS2 first fixes that
+# without touching boards that are genuinely IPCI-wired (no ICNSS2).
+ifeq (y,$(findstring y,$(CONFIG_ICNSS2) $(CONFIG_ICNSS2_MODULE)))
 	CONFIG_ROME_IF = snoc
 	CONFIG_QCA_WIFI_SDIO := n
 	CONFIG_ICNSS2_HELIUM := y
 	CONFIG_PLD_SNOC_ICNSS_FLAG := y
+else ifeq ($(CONFIG_LITHIUM), y)
+ifeq ($(CONFIG_CNSS_QCA6750), y)
+	CONFIG_ROME_IF = ipci
+	CONFIG_PLD_IPCI_ICNSS_FLAG := y
+endif
 endif
 
 ifdef CONFIG_IPCIE_FW_SIM
