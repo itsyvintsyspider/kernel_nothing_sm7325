@@ -329,6 +329,11 @@ static irqreturn_t gf_irq(int irq, void *handle)
 		kill_fasync(&gf_dev->async, SIGIO, POLL_IN);
 #endif
 
+	/* Bring-up trace: confirms whether a physical touch ever reaches
+	 * this ISR at all. Revert once UDFPS is confirmed working.
+	 */
+	pr_err("CDBG gf_irq: fired, irq=%d\n", irq);
+
 	return IRQ_HANDLED;
 }
 
