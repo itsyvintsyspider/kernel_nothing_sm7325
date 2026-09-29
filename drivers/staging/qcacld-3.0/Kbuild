@@ -3249,6 +3249,14 @@ cppflags-$(CONFIG_ATH_PROCFS_DIAG_SUPPORT) += -DCONFIG_ATH_PROCFS_DIAG_SUPPORT
 
 cppflags-$(CONFIG_HELIUMPLUS) += -DHELIUMPLUS
 #
+# CONFIG_CNSS_QCA6750 is only ever checked in Makefile ifeq conditionals
+# here and in default_defconfig -- never propagated as a real C
+# preprocessor define. hif/src/snoc/if_snoc.c's hif_snoc_get_target_type()
+# needs it as a #ifdef to know it's safe to report TARGET_TYPE_QCA6750
+# instead of leaving *target_type at its permanent "TODO" placeholder
+# of 0. See the comment at that #ifdef for the full chain this feeds.
+cppflags-$(CONFIG_CNSS_QCA6750) += -DCONFIG_CNSS_QCA6750
+#
 # QCA_WIFI_SUPPORT_SRNG was never defined anywhere in this build despite
 # being #ifdef-checked throughout hif/src/ce/ce_main.c. Concretely: with
 # it undefined, hif_ce_service_init() always calls ce_service_legacy_init()

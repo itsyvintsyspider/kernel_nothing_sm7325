@@ -218,6 +218,28 @@ static inline int hif_snoc_get_target_type(struct hif_softc *ol_sc,
 #ifdef QCA_WIFI_3_0_ADRASTEA
 	*hif_type = HIF_TYPE_ADRASTEA;
 	*target_type = TARGET_TYPE_ADRASTEA;
+#elif defined(CONFIG_CNSS_QCA6750)
+	/*
+	 * The above TODO was never resolved for non-ADRASTEA SNOC chips:
+	 * *target_type stayed 0, which matches no case in ce_srng_based()'s
+	 * switch (TARGET_TYPE_* all start at 19), so it silently returns
+	 * false. hif_ce_prepare_config() -> hif_ce_service_init() only
+	 * ever calls ce_service_srng_init() for CONFIG_LITHIUM (this
+	 * board), so ce_attach_register[CE_SVC_LEGACY] is never populated
+	 * either -- ce_services_attach() finds nothing in either slot and
+	 * returns NULL regardless. First real caller after that
+	 * (hif_wlan_enable() -> hif_prepare_hal_shadow_register_cfg() ->
+	 * hif_state->ce_services->ce_prepare_shadow_register_v2_cfg(...))
+	 * NULL-derefs. Confirmed by disassembling the actual captured
+	 * panic on real hardware (icnss_driver_event_work -> ... ->
+	 * hif_wlan_enable, NULL pointer dereference at virtual address
+	 * 0x68 -- ce_prepare_shadow_register_v2_cfg's offset in struct
+	 * ce_ops). Defining QCA_WIFI_SUPPORT_SRNG (see qcacld-3.0/Kbuild)
+	 * was necessary but insufficient on its own -- this is the actual
+	 * missing piece.
+	 */
+	*hif_type = 0;
+	*target_type = TARGET_TYPE_QCA6750;
 #else
 	*hif_type = 0;
 	*target_type = 0;
