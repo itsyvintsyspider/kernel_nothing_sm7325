@@ -315,6 +315,31 @@ QDF_STATUS hif_snoc_enable_bus(struct hif_softc *ol_sc,
 		return QDF_STATUS_E_NOMEM;
 	}
 
+	/*
+	 * hif_snoc_get_soc_info() (below, called again later from
+	 * hif_snoc_bus_configure()) is what actually sets ol_sc->mem --
+	 * this bus's enable_bus otherwise never touches it, unlike PCI/
+	 * IPCI's enable_bus which sets sc->mem directly. hif_enable()'s
+	 * shared sequence is hif_enable_bus() -> hif_hal_attach() ->
+	 * hif_bus_configure(), and hal_attach() reads ol_sc->mem via
+	 * hif_get_dev_ba() to set hal->dev_base_addr -- so without this
+	 * call here, hal_attach() runs before anything has ever set
+	 * ol_sc->mem, permanently freezing hal->dev_base_addr at NULL.
+	 * hal_srng_setup() then computes hwreg_base[i] = NULL + a real
+	 * register offset, and hal_srng_src_hw_init_generic() writes
+	 * through it -- confirmed by a real captured panic (paging fault,
+	 * WnR=1, virtual address 0x100000 -- a bare CE ring register
+	 * offset with no base added) at hal_write32_mb, reached via
+	 * hif_config_ce() -> hal_srng_setup() ->
+	 * hal_srng_src_hw_init_generic(), one step past the previous
+	 * (now-fixed) hif_ce_prepare_config()/hostdef crash.
+	 */
+	ret = hif_snoc_get_soc_info(ol_sc);
+	if (ret) {
+		hif_err("hif_snoc_get_soc_info error = %d", ret);
+		return QDF_STATUS_E_FAILURE;
+	}
+
 	ret = hif_set_dma_coherent_mask(ol_sc->qdf_dev);
 	if (ret) {
 		hif_err("Failed to set dma mask error = %d", ret);
