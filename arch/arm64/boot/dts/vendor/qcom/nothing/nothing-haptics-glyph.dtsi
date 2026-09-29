@@ -1,0 +1,124 @@
+/*
+ * Nothing/Spacewar-specific haptics and Glyph LED overrides.
+ *
+ * Copies of the blocks already defined in yupik-qrd.dtsi -- yupik-qrd.dtsi
+ * stays untouched. Devicetree overlay merge is last-include-wins per
+ * property, so anything redeclared here (after yupik-qrd.dtsi in the
+ * #include chain) overrides the base value. Properties left out of a
+ * redeclared node still inherit from yupik-qrd.dtsi.
+ */
+
+&pmk8350_sdam_2 {
+	cl_brake@7c {
+		reg = <0x7c 0x1>;
+		bits = <0 8>;
+	};
+};
+
+&pm8350b_haptics {
+	nvmem-cell-names = "hap_cl_brake";
+	nvmem-cells = <&hap_cl_brake>;
+	nvmem-names = "hap_cfg_sdam";
+	nvmem = <&pmk8350_sdam_46>;
+	qcom,pbs-client = <&pm8350b_pbs2>;
+
+	/*
+	 * -45% across the board (0.55x). Vrms_mv left at stock -- that's
+	 * the LRA resonance-calibration reference, not a loudness knob;
+	 * scaling it risks breaking auto-cal instead of softening feel.
+	 * qcom,vmax-mv is also the ceiling haptics_set_gain() falls back
+	 * to if play->effect is ever NULL (see the parked "earthquake
+	 * tremor" investigation) -- lowering it caps that worst case too,
+	 * independent of whether that bug is real.
+	 */
+	qcom,Vrms_mv = <1270>;
+	qcom,vmax-mv = <5033>; /* was 9150 */
+	qcom,lra-period-us = <5880>;
+	status = "ok";
+
+	effect_0 {
+		/* CLICK */
+		qcom,wf-vmax-mv = <1980>; /* was 3600 */
+		qcom,wf-pattern-period-us = <5880>;
+	};
+
+	effect_1 {
+		/* DOUBLE_CLICK */
+		qcom,wf-vmax-mv = <1980>; /* was 3600 */
+		qcom,wf-pattern-period-us = <5880>;
+	};
+
+	effect_2 {
+		/* TICK */
+		qcom,wf-vmax-mv = <1980>; /* was 3600 */
+		qcom,wf-pattern-period-us = <5880>;
+	};
+
+	effect_3 {
+		/* THUD */
+		qcom,wf-vmax-mv = <1980>; /* was 3600 */
+		qcom,wf-pattern-period-us = <5880>;
+	};
+
+	effect_4 {
+		/* POP */
+		qcom,wf-vmax-mv = <1980>; /* was 3600 */
+		qcom,wf-pattern-period-us = <5880>;
+	};
+
+	effect_5 {
+		/* HEAVY CLICK */
+		qcom,wf-vmax-mv = <1980>; /* was 3600 */
+		qcom,wf-pattern-period-us = <5880>;
+	};
+
+	effect_7 {
+		/* FIFO sample only */
+		qcom,wf-vmax-mv = <1980>; /* was 3600 */
+		qcom,wf-pattern-period-us = <5880>;
+	};
+};
+
+&swr_haptics {
+	status = "okay";
+	swr-slave-supply = <&hap_swr_slave_reg>;
+};
+
+&tlmm {
+	aw210xx_led_pins {
+		led_gpio_en {
+			mux {
+				pins = "gpio18";
+				function = "gpio";
+			};
+
+			config {
+				pins = "gpio18";
+				drive-strength = <2>;
+				output-high;
+				bias-pull-up;
+			};
+		};
+	};
+};
+
+&qupv3_se1_i2c {
+	status = "ok";
+	aw210xx_led@20 {
+		compatible = "awinic,aw210xx_led";
+		reg = <0x20>;
+		enable-gpio = <&tlmm 18 0x00>;
+		global_current = <0x20>;
+		osc_clk = <1>;
+		br_res = <3>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&led_gpio_en>;
+		status = "ok";
+		aw210xx,led {
+			aw210xx,name = "aw210xx_led";
+			aw210xx,imax = <1>;
+			aw210xx,brightness = <4095>;
+			aw210xx,max_brightness = <4095>;
+		};
+	};
+};

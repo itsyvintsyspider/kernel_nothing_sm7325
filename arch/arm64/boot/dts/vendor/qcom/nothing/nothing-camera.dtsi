@@ -1,0 +1,74 @@
+/*
+ * Nothing/Spacewar-specific camera overrides.
+ *
+ * From Willay's nothing-spacewar-camera-sensor.dtsi.
+ */
+
+/*
+ * abra-camera-sensor.dtsi's "front vana" pinctrl node points at
+ * gpio40, but the bench-verified regulator map (vreg_camf_vana_2p8)
+ * shows the real front-camera 2.8V VANA line is gpio43 -- the same
+ * pin already wired up in qcom,cam-sensor1's own pinctrl. Repointing
+ * this node makes the label match the actual hardware function;
+ * gpio40 is left alone since nothing else on this board claims it.
+ */
+&cam_sensor_front_vana_active {
+	mux {
+		pins = "gpio43";
+	};
+
+	config {
+		pins = "gpio43";
+	};
+};
+
+&cam_sensor_front_vana_suspend {
+	mux {
+		pins = "gpio43";
+	};
+
+	config {
+		pins = "gpio43";
+	};
+};
+
+/* Same fix, second site: eeprom_front's own raw gpios list still had
+ * the stale gpio40 entry (3rd position) independent of the pinctrl
+ * nodes above.
+ */
+&cam_cci0 {
+	qcom,eeprom1 {
+		gpios = <&tlmm 64 0>,
+			<&tlmm 20 0>,
+			<&tlmm 43 0>,
+			<&tlmm 35 0>,
+			<&tlmm 49 0>;
+	};
+};
+
+/* CCI I2C bus drive-strength bump for sensor-communication reliability
+ * (stock yupik-pinctrl.dtsi has these at 2 MA). Pull-up unchanged.
+ */
+&cci0_active {
+	config {
+		pins = "gpio69", "gpio70";
+		bias-pull-up;
+		drive-strength = <4>; /* 4 MA */
+	};
+};
+
+&cci2_active {
+	config {
+		pins = "gpio73", "gpio74";
+		bias-pull-up;
+		drive-strength = <4>; /* 4 MA */
+	};
+};
+
+&cci3_active {
+	config {
+		pins = "gpio75", "gpio76";
+		bias-pull-up;
+		drive-strength = <4>; /* 4 MA */
+	};
+};

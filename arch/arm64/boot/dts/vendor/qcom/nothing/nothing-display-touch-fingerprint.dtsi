@@ -1,0 +1,85 @@
+/*
+ * Nothing/Spacewar-specific display, touchscreen, and UDFPS overrides.
+ *
+ * Copies of the blocks already defined in yupik-qrd.dtsi /
+ * yupik-sde-display-common.dtsi -- those files stay untouched.
+ * Devicetree overlay merge is last-include-wins per property, so
+ * anything redeclared here (after yupik-qrd.dtsi in the #include
+ * chain) overrides the base value. Properties left out of a
+ * redeclared node still inherit from the base file.
+ */
+
+&qupv3_se13_i2c {
+	status = "disabled";
+};
+
+&qupv3_se13_spi {
+	status = "ok";
+	qcom,spi-touch-active = "focaltech,fts_ts";
+
+	focaltech@0 {
+		status = "okay";
+		compatible = "focaltech,fts_ts";
+		reg = <0x0>;
+		spi-max-frequency = <6000000>;
+		interrupt-parent = <&tlmm>;
+		interrupts = <81 0x2008>;
+		focaltech,reset-gpio = <&tlmm 105 0x00>;
+		focaltech,irq-gpio = <&tlmm 81 0x2008>;
+		focaltech,display-coords = <0 0 1080 2400>;
+		focaltech,max-touch-number = <10>;
+		focaltech,ic-type = <0x3658D488>;
+
+		vdd-supply = <&L3C>;
+		iovdd-supply = <&L8C>;
+
+		pinctrl-names = "pmx_ts_active", "pmx_ts_suspend","pmx_ts_release";
+		pinctrl-0 = <&ts_active>;
+		pinctrl-1 = <&ts_int_suspend &ts_reset_suspend>;
+		pinctrl-2 = <&ts_release>;
+		focaltech,trusted-touch-mode = "vm_mode";
+		focaltech,touch-environment = "pvm";
+		focaltech,trusted-touch-spi-irq = <601>;
+		focaltech,trusted-touch-io-bases = <0xf134000 0xf135000 0xf136000 0xf137000 0xf169000 0xf151000 0xa94000 0x00a10000>;
+		focaltech,trusted-touch-io-sizes = <0x1000 0x1000 0x1000 0x1000 0x1000 0x1000 0x1000 0x4000>;
+		panel = <&dsi_rm692e5_visionox_amoled_120hz_cmd>;
+	};
+
+	goodix-berlin@0 {
+		compatible = "goodix,gt9916S";
+		reg = <0>;
+		spi-max-frequency = <1000000>;
+
+		goodix,avdd-name = "avdd";
+		avdd-supply = <&L3C>;
+		goodix,iovdd-name = "iovdd";
+		iovdd-supply = <&L8C>;
+
+		goodix,reset-gpio = <&tlmm 105 0x0>;
+		goodix,irq-gpio = <&tlmm 81 0x2800>;
+		goodix,irq-flags = <2>; /* 1:trigger rising, 2:trigger falling;*/
+		goodix,panel-max-x = <1080>;
+		goodix,panel-max-y = <2400>;
+		goodix,panel-max-w = <255>;
+		goodix,panel-max-p = <4096>; /* max pressure that pen device supported */
+		goodix,pen-enable; /* support active stylus device*/
+
+		goodix,firmware-name = "goodix_firmware.bin";
+		goodix,config-name = "goodix_cfg_group.bin";
+	};
+};
+
+&qupv3_se14_spi {
+	status = "okay";
+	goodix_fp@0 {
+		compatible = "goodix,fingerprint";
+		reg = <0>;
+		spi-max-frequency = <6000000>;
+		interrupt-parent = <&tlmm>;
+		fp-gpio-power = <&tlmm 2 0x00>;
+		fp-gpio-irq = <&tlmm 34 0x00>;
+		fp-gpio-reset = <&tlmm 61 0x00>;
+		panel = <&dsi_rm692e5_visionox_amoled_120hz_cmd>;
+		status = "okay";
+	};
+};

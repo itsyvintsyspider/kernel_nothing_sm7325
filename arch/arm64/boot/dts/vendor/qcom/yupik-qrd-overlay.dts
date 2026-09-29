@@ -3,6 +3,7 @@
 
 #include "yupik-qrd.dtsi"
 #include "yupik-abra-common-overlay.dtsi"
+#include "nothing/nothing.dtsi"
 
 / {
 	model = "Qualcomm Technologies, Inc. Yupik QRD";

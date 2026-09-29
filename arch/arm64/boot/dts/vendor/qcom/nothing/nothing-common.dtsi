@@ -1,0 +1,51 @@
+/*
+ * Nothing/Spacewar-specific misc/common overrides -- anything that
+ * doesn't fit audio, display/touch/fingerprint, haptics/glyph, or
+ * camera (NFC, board-id/slot-state, wifi bus selection).
+ *
+ * Copies of the blocks already defined in yupik-qrd.dtsi -- yupik-qrd.dtsi
+ * stays untouched. Devicetree overlay merge is last-include-wins per
+ * property, so anything redeclared here (after yupik-qrd.dtsi in the
+ * #include chain) overrides the base value. Properties left out of a
+ * redeclared node still inherit from yupik-qrd.dtsi.
+ */
+
+&qupv3_se9_i2c {
+	status = "okay";
+	st21nfc@08 {
+		compatible = "st,st21nfc";
+		reg = <0x08>;
+		interrupt-parent = <&tlmm>;
+		interrupts = <41  0>;
+		reset-gpios = <&tlmm 38 0x00>;
+		irq-gpios = <&tlmm 41 0x00>;
+		// pidle-gpios = <&tlmm 48 0x00>;
+		clkreq-gpios = <&tlmm 39 0x00>;
+		clocks = <&rpmhcc RPMH_LN_BB_CLK2>;
+		clock-names = "nfc_ref_clk";
+		st,clk_pinctrl;
+		status = "disabled";
+	};
+};
+
+&qupv3_se1_i2c {
+	/delete-node/ nq@64;
+};
+
+&soc {
+	hardware_id {
+		compatible = "nt,hwid";
+		gpio_id1 = <&tlmm 19 0x00>;
+		gpio_id2 = <&tlmm 21 0x00>;
+	};
+
+	slot_state {
+		compatible = "nt,slot_check";
+		gpio112 = <&tlmm 112 0x00>;
+		gpio116 = <&tlmm 116 0x00>;
+	};
+};
+
+&icnss2 {
+	use-nv-mac;
+};

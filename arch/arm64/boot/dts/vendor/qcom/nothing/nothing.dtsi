@@ -1,0 +1,13 @@
+/*
+ * Umbrella include for all Nothing/Spacewar-specific devicetree
+ * overrides, organized by subsystem so individual files stay small
+ * and the stock CLO reference files (yupik-qrd.dtsi,
+ * yupik-abra-common-overlay.dtsi, yupik-sde-display-common.dtsi, ...)
+ * never need direct edits.
+ */
+
+#include "nothing-common.dtsi"
+#include "nothing-audio.dtsi"
+#include "nothing-display-touch-fingerprint.dtsi"
+#include "nothing-haptics-glyph.dtsi"
+#include "nothing-camera.dtsi"

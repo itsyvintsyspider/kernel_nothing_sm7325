@@ -152,3 +152,9 @@ arch/*/configs/vendor/*_defconfig
 # vendor device tree directories
 arch/arm64/boot/dts/vendor
 arch/arm/boot/dts/vendor
+
+# KernelSU / NoMount -- managed locally via their own setup.sh, never tracked here
+/KernelSU/
+/NoMount/
+drivers/kernelsu
+fs/nomount
