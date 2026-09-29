@@ -243,8 +243,20 @@ static inline int hif_snoc_get_target_type(struct hif_softc *ol_sc,
 	 * Defining QCA_WIFI_SUPPORT_SRNG (see qcacld-3.0/Kbuild) was
 	 * necessary but insufficient on its own -- this ordering was the
 	 * actual missing piece.
+	 *
+	 * hif_type also stayed hardcoded 0 (HIF_TYPE_UNKNOWN, no case in
+	 * hif_register_tbl_attach()'s switch) through both of the above --
+	 * scn->hostdef never got set, so hif_ce_prepare_config()'s very
+	 * first real access (HOST_CE_COUNT, which expands to
+	 * scn->hostdef->d_HOST_CE_COUNT) NULL-derefs. Confirmed by a second
+	 * real captured panic, one call frame earlier than the one above
+	 * (hif_ce_prepare_config, fault address 0xdc == offsetof(struct
+	 * hostdef_s, d_HOST_CE_COUNT), disassembled against the exact
+	 * matching vmlinux). QCA6750_HEADERS_DEF is defined in the real
+	 * build and hif_register_tbl_attach() has a real HIF_TYPE_QCA6750
+	 * case -- this was simply never wired up.
 	 */
-	*hif_type = 0;
+	*hif_type = HIF_TYPE_QCA6750;
 	*target_type = TARGET_TYPE_QCA6750;
 #elif defined(QCA_WIFI_3_0_ADRASTEA)
 	*hif_type = HIF_TYPE_ADRASTEA;
