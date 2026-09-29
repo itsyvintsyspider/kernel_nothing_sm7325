@@ -675,8 +675,13 @@ else ifeq ($(CONFIG_PERF_DEBUG), y)
 	PANIC_ON_BUG := y
 	WLAN_WARN_ON_ASSERT := y
 else
-	PANIC_ON_BUG := n
-	WLAN_WARN_ON_ASSERT := n
+	# DIAGNOSTIC: was n. QDF_DEBUG_PANIC() (the FW-ready-timeout handler
+	# in wma_wait_for_ready_event() calls it) is a total no-op without
+	# this, silently swallowing whatever failure resets the device with
+	# zero panic text anywhere. Forcing it on to make failures loud
+	# instead of silent. Revert once the post-WMI-attach crash is found.
+	PANIC_ON_BUG := y
+	WLAN_WARN_ON_ASSERT := y
 endif
 
 # Compile all log levels by default

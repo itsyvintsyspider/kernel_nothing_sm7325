@@ -4157,6 +4157,7 @@ int hdd_wlan_start_modules(struct hdd_context *hdd_ctx, bool reinit)
 			ret = qdf_status_to_os_return(status);
 			goto psoc_close;
 		}
+		hdd_err("DEBUG: cds_open done");
 
 		hdd_set_qmi_stats_enabled(hdd_ctx);
 

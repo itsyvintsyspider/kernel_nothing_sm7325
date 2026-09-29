@@ -1047,23 +1047,27 @@ QDF_STATUS cds_pre_enable(void)
 					scn);
 
 	/*call WMA pre start */
+	cds_err("DEBUG: wma_pre_start enter");
 	status = wma_pre_start();
 	if (QDF_IS_STATUS_ERROR(status)) {
 		cds_err("Failed to WMA prestart");
 		goto exit_pkt_log;
 	}
+	cds_err("DEBUG: wma_pre_start done");
 
 	status = htc_start(gp_cds_context->htc_ctx);
 	if (QDF_IS_STATUS_ERROR(status)) {
 		cds_err("Failed to Start HTC");
 		goto exit_pkt_log;
 	}
+	cds_err("DEBUG: htc_start done");
 
 	status = wma_wait_for_ready_event(gp_cds_context->wma_context);
 	if (QDF_IS_STATUS_ERROR(status)) {
 		cds_err("Failed to wait for ready event; status: %u", status);
 		goto stop_wmi;
 	}
+	cds_err("DEBUG: wma_wait_for_ready_event done");
 
 	errno = cdp_pdev_post_attach(soc, OL_TXRX_PDEV_ID);
 	if (errno) {
