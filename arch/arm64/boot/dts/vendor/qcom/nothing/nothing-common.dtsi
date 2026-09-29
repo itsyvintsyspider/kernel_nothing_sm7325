@@ -48,4 +48,18 @@
 
 &icnss2 {
 	use-nv-mac;
+
+	/*
+	 * DIAGNOSTIC: dropped "non-fatal" from stock's
+	 * qcom,iommu-faults = "stall-disable", "HUPCF", "non-fatal".
+	 * hif_snoc_open() and everything downstream of it (CE ring
+	 * setup, TX/RX descriptor allocation) has never once run
+	 * successfully on this tree -- if it programs a DMA address
+	 * outside qcom,iommu-dma-addr-pool's 256MB window (0xa0000000-
+	 * 0xb0000000), stock's non-fatal setting means the SMMU
+	 * silently tolerates the fault instead of reporting it, which
+	 * would explain the repeated crash-with-zero-signature pattern.
+	 * Revert once WiFi bring-up is confirmed stable either way.
+	 */
+	qcom,iommu-faults = "stall-disable", "HUPCF";
 };
