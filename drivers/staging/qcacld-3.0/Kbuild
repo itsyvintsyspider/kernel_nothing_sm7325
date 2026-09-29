@@ -2725,8 +2725,19 @@ endif
 cppflags-$(CONFIG_NL80211_TESTMODE) += -DWLAN_NL80211_TESTMODE
 
 # Flag to enable bus auto suspend
+#
+# FEATURE_RUNTIME_PM only has real PCI-bus semantics in this driver --
+# newer upstream (wlan-cmn.driver.lnx.7.3.9) confirms it's PCI-only:
+# the hif_bus_get_rpm_ctx/hif_bus_get_dev ops it needs were dropped
+# from multibus.h's SNOC/generic path entirely, PCI-only there too.
+# A SNOC/ICNSS2 board unconditionally getting -DFEATURE_RUNTIME_PM
+# from CONFIG_BUS_AUTO_SUSPEND=y activates hif_runtime_pm.c's whole
+# autosuspend/pm_runtime state machine for a bus that was never
+# designed for it -- exclude SNOC boards the same way upstream does.
 ifeq ($(CONFIG_BUS_AUTO_SUSPEND), y)
+ifneq ($(CONFIG_PLD_SNOC_ICNSS_FLAG), y)
 cppflags-y += -DFEATURE_RUNTIME_PM
+endif
 endif
 
 ifeq (y,$(findstring y, $(CONFIG_ICNSS) $(CONFIG_ICNSS_MODULE)))
