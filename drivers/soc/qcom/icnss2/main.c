@@ -2622,24 +2622,7 @@ int icnss_ce_request_irq(struct device *dev, unsigned int ce_id,
 		ret = -EINVAL;
 		goto out;
 	}
-	/*
-	 * priv->ce_irqs[] is only ever populated for ADRASTEA_DEVICE_ID
-	 * (see the device_id branch in the DT-parsing function above,
-	 * where ce_irqs[i] = res->start only happens in that branch).
-	 * WCN6750_DEVICE_ID (our real QCA6750/WCN6750 chip) populates
-	 * srng_irqs[] instead via icnss_get_msi_assignment(), so ce_irqs[]
-	 * stays zero-initialized for us -- request_irq(0, ...) then fails
-	 * with -EINVAL for every CE, which cascades into the WLAN firmware
-	 * (wpss) crashing shortly after with a PCIE ACMT error, since it
-	 * never gets a working host IRQ to signal completions on. Confirmed
-	 * via a real captured panic (subsys-restart: wpss crashed) preceded
-	 * by "cannot register CE N irq handler, ret = -22" for every CE.
-	 * icnss_get_msi_irq() (above) already reads srng_irqs[] correctly
-	 * for this exact purpose -- this function and its free/enable/
-	 * disable siblings below were simply never updated to use it.
-	 */
-	irq = (priv->device_id == WCN6750_DEVICE_ID) ?
-		priv->srng_irqs[ce_id] : priv->ce_irqs[ce_id];
+	irq = priv->ce_irqs[ce_id];
 	irq_entry = &priv->ce_irq_list[ce_id];
 
 	if (irq_entry->handler || irq_entry->irq) {
@@ -2685,8 +2668,7 @@ int icnss_ce_free_irq(struct device *dev, unsigned int ce_id, void *ctx)
 		goto out;
 	}
 
-	irq = (penv->device_id == WCN6750_DEVICE_ID) ?
-		penv->srng_irqs[ce_id] : penv->ce_irqs[ce_id];
+	irq = penv->ce_irqs[ce_id];
 	irq_entry = &penv->ce_irq_list[ce_id];
 	if (!irq_entry->handler || !irq_entry->irq) {
 		icnss_pr_err("IRQ not requested: %d, ce_id: %d\n", irq, ce_id);
@@ -2722,8 +2704,7 @@ void icnss_enable_irq(struct device *dev, unsigned int ce_id)
 
 	penv->stats.ce_irqs[ce_id].enable++;
 
-	irq = (penv->device_id == WCN6750_DEVICE_ID) ?
-		penv->srng_irqs[ce_id] : penv->ce_irqs[ce_id];
+	irq = penv->ce_irqs[ce_id];
 	enable_irq(irq);
 }
 EXPORT_SYMBOL(icnss_enable_irq);
@@ -2746,8 +2727,7 @@ void icnss_disable_irq(struct device *dev, unsigned int ce_id)
 		return;
 	}
 
-	irq = (penv->device_id == WCN6750_DEVICE_ID) ?
-		penv->srng_irqs[ce_id] : penv->ce_irqs[ce_id];
+	irq = penv->ce_irqs[ce_id];
 	disable_irq(irq);
 
 	penv->stats.ce_irqs[ce_id].disable++;

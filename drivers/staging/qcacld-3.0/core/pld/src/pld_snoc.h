@@ -62,14 +62,6 @@ static inline int pld_snoc_ce_free_irq(struct device *dev,
 {
 	return 0;
 }
-static inline int pld_snoc_get_user_msi_assignment(struct device *dev,
-						   char *user_name,
-						   int *num_vectors,
-						   uint32_t *user_base_data,
-						   uint32_t *base_vector)
-{
-	return -EINVAL;
-}
 static inline void pld_snoc_enable_irq(struct device *dev, unsigned int ce_id)
 {
 }
@@ -253,35 +245,6 @@ static inline int pld_snoc_ce_free_irq(struct device *dev,
 		return -ENODEV;
 
 	return icnss_ce_free_irq(dev, ce_id, ctx);
-}
-
-/*
- * pld_get_user_msi_assignment()'s switch (pld_common.c) had no
- * PLD_BUS_TYPE_SNOC case at all -- unlike pld_snoc_ce_request_irq
- * above, this wrapper never existed, so it fell to "Not supported on
- * type %d" -EONDEV for every SNOC board. icnss2 already exports a
- * real, working icnss_get_user_msi_assignment() (see icnss_get_msi_irq
- * right next to it, already used correctly elsewhere) -- it was simply
- * never wired through this abstraction layer. Confirmed via a real
- * captured panic: "pld_get_user_msi_assignment:2162:: Not supported on
- * type 1" (x8, matching msi_config.total_users) firing immediately
- * before wpss (the WLAN firmware) crashes with the same PCIE ACMT
- * error seen before the CE-IRQ fix (a1384d72dd969) -- that fix made
- * CE IRQs register, but firmware also needs a real MSI vector
- * assignment for its own use (distinct from the per-CE IRQs) to avoid
- * this same completion-timeout failure mode.
- */
-static inline int pld_snoc_get_user_msi_assignment(struct device *dev,
-						   char *user_name,
-						   int *num_vectors,
-						   uint32_t *user_base_data,
-						   uint32_t *base_vector)
-{
-	if (!dev)
-		return -ENODEV;
-
-	return icnss_get_user_msi_assignment(dev, user_name, num_vectors,
-					     user_base_data, base_vector);
 }
 
 static inline void pld_snoc_enable_irq(struct device *dev, unsigned int ce_id)

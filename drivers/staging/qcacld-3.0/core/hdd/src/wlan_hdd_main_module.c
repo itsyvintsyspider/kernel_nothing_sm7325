@@ -35,17 +35,7 @@ static void __exit hdd_module_exit(void)
 	hdd_driver_unload();
 }
 
-/*
- * hdd_driver_load() -> wlan_hdd_register_driver() -> pld_register_driver()
- * is a one-shot call with no retry: icnss_register_driver() returns
- * -ENODEV if icnss2 hasn't populated its platform-device pointer yet,
- * which only happens once icnss2's own probe() completes -- an async
- * step (gated on IOMMU/SMMU group setup) that isn't guaranteed to be
- * done by ordinary device_initcall (plain module_init) time. Deferring
- * to late_initcall gives every other built-in driver's initcall,
- * including icnss2's, a chance to run first.
- */
-late_initcall(hdd_module_init);
+module_init(hdd_module_init);
 module_exit(hdd_module_exit);
 
 MODULE_LICENSE("Dual BSD/GPL");

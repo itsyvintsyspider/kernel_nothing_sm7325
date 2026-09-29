@@ -6,6 +6,9 @@ else
 	KERNEL_BUILD := n
 endif
 
+# Force user build
+TARGET_BUILD_VARIANT := user
+
 ifeq ($(KERNEL_BUILD), y)
 	# These are provided in external module based builds
 	# Need to explicitly define for Kernel-based builds
@@ -751,8 +754,10 @@ WLAN_LOGGING_INC_DIR :=	$(WLAN_LOGGING_DIR)/inc
 WLAN_LOGGING_SRC_DIR :=	$(WLAN_LOGGING_DIR)/src
 
 WLAN_LOGGING_INC     := -I$(WLAN_ROOT)/$(WLAN_LOGGING_INC_DIR)
+ifeq ($(BUILD_DEBUG_VERSION), 1)
 WLAN_LOGGING_OBJS    := $(WLAN_LOGGING_SRC_DIR)/wlan_logging_sock_svc.o \
 		$(WLAN_LOGGING_SRC_DIR)/wlan_roam_debug.o
+endif
 
 $(call add-wlan-objs,wlan_logging,$(WLAN_LOGGING_OBJS))
 
@@ -2606,10 +2611,6 @@ INCS +=		$(COEX_CORE_INC)
 
 ccflags-y += $(INCS)
 
-# vendor code trips clang-only warnings that gcc-wrapper.py would fail on
-ccflags-y += -Wno-implicit-enum-enum-cast -Wno-array-parameter \
-	     -Wno-void-pointer-to-int-cast -Wno-pointer-to-int-cast
-
 cppflags-y +=	-DANI_OS_TYPE_ANDROID=6 \
 		-Wall\
 		-D__linux__
@@ -2725,19 +2726,8 @@ endif
 cppflags-$(CONFIG_NL80211_TESTMODE) += -DWLAN_NL80211_TESTMODE
 
 # Flag to enable bus auto suspend
-#
-# FEATURE_RUNTIME_PM only has real PCI-bus semantics in this driver --
-# newer upstream (wlan-cmn.driver.lnx.7.3.9) confirms it's PCI-only:
-# the hif_bus_get_rpm_ctx/hif_bus_get_dev ops it needs were dropped
-# from multibus.h's SNOC/generic path entirely, PCI-only there too.
-# A SNOC/ICNSS2 board unconditionally getting -DFEATURE_RUNTIME_PM
-# from CONFIG_BUS_AUTO_SUSPEND=y activates hif_runtime_pm.c's whole
-# autosuspend/pm_runtime state machine for a bus that was never
-# designed for it -- exclude SNOC boards the same way upstream does.
 ifeq ($(CONFIG_BUS_AUTO_SUSPEND), y)
-ifneq ($(CONFIG_PLD_SNOC_ICNSS_FLAG), y)
 cppflags-y += -DFEATURE_RUNTIME_PM
-endif
 endif
 
 ifeq (y,$(findstring y, $(CONFIG_ICNSS) $(CONFIG_ICNSS_MODULE)))
@@ -3248,36 +3238,6 @@ cppflags-$(CONFIG_WLAN_SYNC_TSF_PLUS_NOIRQ) += -DWLAN_FEATURE_TSF_PLUS_NOIRQ
 cppflags-$(CONFIG_ATH_PROCFS_DIAG_SUPPORT) += -DCONFIG_ATH_PROCFS_DIAG_SUPPORT
 
 cppflags-$(CONFIG_HELIUMPLUS) += -DHELIUMPLUS
-#
-# CONFIG_CNSS_QCA6750 is only ever checked in Makefile ifeq conditionals
-# here and in default_defconfig -- never propagated as a real C
-# preprocessor define. hif/src/snoc/if_snoc.c's hif_snoc_get_target_type()
-# needs it as a #ifdef to know it's safe to report TARGET_TYPE_QCA6750
-# instead of leaving *target_type at its permanent "TODO" placeholder
-# of 0. See the comment at that #ifdef for the full chain this feeds.
-cppflags-$(CONFIG_CNSS_QCA6750) += -DCONFIG_CNSS_QCA6750
-#
-# QCA_WIFI_SUPPORT_SRNG was never defined anywhere in this build despite
-# being #ifdef-checked throughout hif/src/ce/ce_main.c. Concretely: with
-# it undefined, hif_ce_service_init() always calls ce_service_legacy_init()
-# (registering only CE_SVC_LEGACY into ce_attach_register[]), but
-# ce_services_attach()'s *runtime* check ce_srng_based(scn) returns true
-# for our actual hardware (TARGET_TYPE_QCA6750 is in ce_srng_based()'s
-# switch) and looks up ce_attach_register[CE_SVC_SRNG] instead -- a slot
-# that was never populated. hif_state->ce_services ends up NULL, and the
-# first real caller (hif_wlan_enable() -> hif_prepare_hal_shadow_register_cfg()
-# -> hif_state->ce_services->ce_prepare_shadow_register_v2_cfg(...)) NULL-
-# derefs. Confirmed by disassembling the actual panic (icnss_driver_event_work
-# -> ... -> hif_wlan_enable, Unable to handle kernel NULL pointer dereference
-# at virtual address 0x68 -- 0x68 is ce_prepare_shadow_register_v2_cfg's
-# offset in struct ce_ops). Same class of incomplete-backport gap as the
-# missing CONFIG_WLAN_RESIDENT_DRIVER and ce_service_srng.c HELIUMPLUS
-# fixes elsewhere in this bring-up. Gated on CONFIG_HELIUMPLUS specifically
-# (not CONFIG_HIF_PCI/IPCI/SNOC broadly) since that's the same flag that
-# already correctly marks genuinely SRNG-capable Lithium-generation
-# hardware for the ce_service_srng.c fix above -- avoids forcing SRNG mode
-# on older non-Lithium PCI boards this same Kbuild may also serve.
-cppflags-$(CONFIG_HELIUMPLUS) += -DQCA_WIFI_SUPPORT_SRNG
 cppflags-$(CONFIG_RX_OL) += -DRECEIVE_OFFLOAD
 cppflags-$(CONFIG_TX_TID_OVERRIDE) += -DATH_TX_PRI_OVERRIDE
 cppflags-$(CONFIG_AR900B) += -DAR900B
@@ -3784,7 +3744,7 @@ cppflags-$(CONFIG_MORE_TX_DESC) += -DTX_TO_NPEERS_INC_TX_DESCS
 
 ccflags-$(CONFIG_HASTINGS_BT_WAR) += -DHASTINGS_BT_WAR
 
-cppflags-y += -DHIF_CONFIG_SLUB_DEBUG_ON
+cppflags-$(CONFIG_SLUB_DEBUG_ON) += -DHIF_CONFIG_SLUB_DEBUG_ON
 cppflags-$(CONFIG_SLUB_DEBUG_ON) += -DHAL_CONFIG_SLUB_DEBUG_ON
 
 ccflags-$(CONFIG_FOURTH_CONNECTION) += -DFEATURE_FOURTH_CONNECTION

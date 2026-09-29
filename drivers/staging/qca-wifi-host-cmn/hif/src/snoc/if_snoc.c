@@ -215,50 +215,7 @@ static inline int hif_snoc_get_target_type(struct hif_softc *ol_sc,
 	uint32_t *hif_type, uint32_t *target_type)
 {
 	/* TODO: need to use HW version. Hard code for now */
-#if defined(CONFIG_CNSS_QCA6750)
-	/*
-	 * Must be checked before QCA_WIFI_3_0_ADRASTEA below, not after --
-	 * confirmed via the real .cmd file that -DQCA_WIFI_3_0_ADRASTEA
-	 * reaches this translation unit even on this board: default_defconfig
-	 * sets CONFIG_WIFI_3_0_ADRASTEA := y whenever CONFIG_ICNSS2_HELIUM is
-	 * set, and CONFIG_ICNSS2_HELIUM := y is itself set by the SNOC branch
-	 * of the CONFIG_ROME_IF selection that a real QCA6750/icnss2 board
-	 * (ours) correctly takes -- a vendor defconfig naming collision, not
-	 * an actual Adrastea board. With the old #ifdef QCA_WIFI_3_0_ADRASTEA
-	 * checked first, that branch always won and set target_type to
-	 * TARGET_TYPE_ADRASTEA, which (same as the old hardcoded 0) matches
-	 * no case in ce_srng_based()'s switch (TARGET_TYPE_* all start at
-	 * 19), so it silently returns false. hif_ce_prepare_config() ->
-	 * hif_ce_service_init() only ever calls ce_service_srng_init() for
-	 * CONFIG_LITHIUM (this board), so ce_attach_register[CE_SVC_LEGACY]
-	 * is never populated either -- ce_services_attach() finds nothing in
-	 * either slot and returns NULL regardless. First real caller after
-	 * that (hif_wlan_enable() -> hif_prepare_hal_shadow_register_cfg() ->
-	 * hif_state->ce_services->ce_prepare_shadow_register_v2_cfg(...))
-	 * NULL-derefs. Confirmed by a real captured panic on hardware
-	 * (icnss_driver_event_work -> ... -> hif_wlan_enable, NULL pointer
-	 * dereference at virtual address 0x68 -- ce_prepare_shadow_register_
-	 * v2_cfg's offset in struct ce_ops) from a build that already had
-	 * this function's old QCA6750 branch compiled in but unreachable.
-	 * Defining QCA_WIFI_SUPPORT_SRNG (see qcacld-3.0/Kbuild) was
-	 * necessary but insufficient on its own -- this ordering was the
-	 * actual missing piece.
-	 *
-	 * hif_type also stayed hardcoded 0 (HIF_TYPE_UNKNOWN, no case in
-	 * hif_register_tbl_attach()'s switch) through both of the above --
-	 * scn->hostdef never got set, so hif_ce_prepare_config()'s very
-	 * first real access (HOST_CE_COUNT, which expands to
-	 * scn->hostdef->d_HOST_CE_COUNT) NULL-derefs. Confirmed by a second
-	 * real captured panic, one call frame earlier than the one above
-	 * (hif_ce_prepare_config, fault address 0xdc == offsetof(struct
-	 * hostdef_s, d_HOST_CE_COUNT), disassembled against the exact
-	 * matching vmlinux). QCA6750_HEADERS_DEF is defined in the real
-	 * build and hif_register_tbl_attach() has a real HIF_TYPE_QCA6750
-	 * case -- this was simply never wired up.
-	 */
-	*hif_type = HIF_TYPE_QCA6750;
-	*target_type = TARGET_TYPE_QCA6750;
-#elif defined(QCA_WIFI_3_0_ADRASTEA)
+#ifdef QCA_WIFI_3_0_ADRASTEA
 	*hif_type = HIF_TYPE_ADRASTEA;
 	*target_type = TARGET_TYPE_ADRASTEA;
 #else
@@ -313,31 +270,6 @@ QDF_STATUS hif_snoc_enable_bus(struct hif_softc *ol_sc,
 	if (!ol_sc) {
 		hif_err("hif_ctx is NULL");
 		return QDF_STATUS_E_NOMEM;
-	}
-
-	/*
-	 * hif_snoc_get_soc_info() (below, called again later from
-	 * hif_snoc_bus_configure()) is what actually sets ol_sc->mem --
-	 * this bus's enable_bus otherwise never touches it, unlike PCI/
-	 * IPCI's enable_bus which sets sc->mem directly. hif_enable()'s
-	 * shared sequence is hif_enable_bus() -> hif_hal_attach() ->
-	 * hif_bus_configure(), and hal_attach() reads ol_sc->mem via
-	 * hif_get_dev_ba() to set hal->dev_base_addr -- so without this
-	 * call here, hal_attach() runs before anything has ever set
-	 * ol_sc->mem, permanently freezing hal->dev_base_addr at NULL.
-	 * hal_srng_setup() then computes hwreg_base[i] = NULL + a real
-	 * register offset, and hal_srng_src_hw_init_generic() writes
-	 * through it -- confirmed by a real captured panic (paging fault,
-	 * WnR=1, virtual address 0x100000 -- a bare CE ring register
-	 * offset with no base added) at hal_write32_mb, reached via
-	 * hif_config_ce() -> hal_srng_setup() ->
-	 * hal_srng_src_hw_init_generic(), one step past the previous
-	 * (now-fixed) hif_ce_prepare_config()/hostdef crash.
-	 */
-	ret = hif_snoc_get_soc_info(ol_sc);
-	if (ret) {
-		hif_err("hif_snoc_get_soc_info error = %d", ret);
-		return QDF_STATUS_E_FAILURE;
 	}
 
 	ret = hif_set_dma_coherent_mask(ol_sc->qdf_dev);

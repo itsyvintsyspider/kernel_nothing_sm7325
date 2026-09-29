@@ -2156,19 +2156,6 @@ int pld_get_user_msi_assignment(struct device *dev, char *user_name,
 							      base_vector);
 		break;
 	case PLD_BUS_TYPE_SNOC:
-		/*
-		 * Was grouped with SDIO/USB/SNOC_FW_SIM below (always
-		 * -ENODEV) -- our real QCA6750/WCN6750 board is SNOC and
-		 * genuinely needs this (confirmed via a real captured
-		 * panic: wpss firmware crash, PCIE ACMT error, immediately
-		 * after this failed 8x in a row). See pld_snoc_get_user_
-		 * msi_assignment() in pld_snoc.h for the real fix.
-		 */
-		ret = pld_snoc_get_user_msi_assignment(dev, user_name,
-						       num_vectors,
-						       user_base_data,
-						       base_vector);
-		break;
 	case PLD_BUS_TYPE_SDIO:
 	case PLD_BUS_TYPE_USB:
 	case PLD_BUS_TYPE_SNOC_FW_SIM:
