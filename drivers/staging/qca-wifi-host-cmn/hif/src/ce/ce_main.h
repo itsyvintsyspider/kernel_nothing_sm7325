@@ -24,6 +24,7 @@
 #include "hif_main.h"
 #include "qdf_util.h"
 #include "hif_exec.h"
+#include "hif_runtime_pm.h"
 
 #ifndef DATA_CE_SW_INDEX_NO_INLINE_UPDATE
 #define DATA_CE_UPDATE_SWINDEX(x, scn, addr)				\
@@ -222,6 +223,14 @@ struct HIF_CE_state {
 	struct CE_handle *ce_diag;
 	struct ce_stats stats;
 	struct ce_ops *ce_services;
+#ifdef FEATURE_RUNTIME_PM
+	/*
+	 * SNOC/AHB never got a bus-specific softc with its own
+	 * rpm_ctx/dev like PCI/IPCI have -- hif_snoc_get_rpm_ctx()/
+	 * hif_snoc_get_dev() need somewhere to point.
+	 */
+	struct hif_runtime_pm_ctx rpm_ctx;
+#endif
 };
 
 /*

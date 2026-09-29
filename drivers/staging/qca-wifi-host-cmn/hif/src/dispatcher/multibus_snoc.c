@@ -50,6 +50,10 @@ QDF_STATUS hif_initialize_snoc_ops(struct hif_bus_ops *bus_ops)
 	bus_ops->hif_nointrs = &hif_snoc_nointrs;
 	bus_ops->hif_enable_bus = &hif_snoc_enable_bus;
 	bus_ops->hif_disable_bus = &hif_snoc_disable_bus;
+#ifdef FEATURE_RUNTIME_PM
+	bus_ops->hif_bus_get_rpm_ctx = &hif_snoc_get_rpm_ctx;
+	bus_ops->hif_bus_get_dev = &hif_snoc_get_dev;
+#endif
 	bus_ops->hif_bus_configure = &hif_snoc_bus_configure;
 	bus_ops->hif_get_config_item = &hif_dummy_get_config_item;
 	bus_ops->hif_set_mailbox_swap = &hif_dummy_set_mailbox_swap;
