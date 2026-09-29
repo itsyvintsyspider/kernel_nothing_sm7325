@@ -39,8 +39,4 @@ void hif_snoc_display_stats(struct hif_softc *hif_ctx);
 void hif_snoc_clear_stats(struct hif_softc *hif_ctx);
 int hif_snoc_map_ce_to_irq(struct hif_softc *scn, int ce_id);
 bool hif_snoc_needs_bmi(struct hif_softc *scn);
-#ifdef FEATURE_RUNTIME_PM
-struct hif_runtime_pm_ctx *hif_snoc_get_rpm_ctx(struct hif_softc *scn);
-struct device *hif_snoc_get_dev(struct hif_softc *scn);
-#endif
 #endif /* _SNOC_API_H_ */
