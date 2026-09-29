@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022-2024 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) 2022-2023 Qualcomm Innovation Center, Inc. All rights reserved.
  * Copyright (c) 2014-2021, The Linux Foundation. All rights reserved.
  * Copyright (C) 2013 Red Hat
  * Author: Rob Clark <robdclark@gmail.com>
@@ -1434,17 +1434,10 @@ static int _sde_encoder_update_rsc_client(
 void sde_encoder_irq_control(struct drm_encoder *drm_enc, bool enable)
 {
 	struct sde_encoder_virt *sde_enc;
-	struct sde_kms *sde_kms = NULL;
 	int i;
 
 	if (!drm_enc) {
 		SDE_ERROR("invalid encoder\n");
-		return;
-	}
-
-	sde_kms = sde_encoder_get_kms(drm_enc);
-	if (!sde_kms) {
-		SDE_ERROR("invalid kms\n");
 		return;
 	}
 
@@ -1457,7 +1450,7 @@ void sde_encoder_irq_control(struct drm_encoder *drm_enc, bool enable)
 		if (phys && phys->ops.irq_control)
 			phys->ops.irq_control(phys, enable);
 	}
-	sde_kms_cpu_vote_for_irq(sde_kms, enable);
+	sde_kms_cpu_vote_for_irq(sde_encoder_get_kms(drm_enc), enable);
 
 }
 
@@ -1658,8 +1651,10 @@ static void _sde_encoder_rc_restart_delayed(struct sde_encoder_virt *sde_enc,
 {
 	struct drm_encoder *drm_enc = &sde_enc->base;
 	struct msm_drm_private *priv;
-	unsigned int lp, idle_pc_duration;
+	unsigned int lp, idle_pc_duration, frame_time_ms, fps;
 	struct msm_drm_thread *disp_thread;
+	unsigned int min_duration = IDLE_POWERCOLLAPSE_DURATION;
+	unsigned int max_duration = IDLE_POWERCOLLAPSE_IN_EARLY_WAKEUP;
 
 	/* set idle timeout based on master connector's lp value */
 	if (sde_enc->cur_master)
@@ -1668,10 +1663,15 @@ static void _sde_encoder_rc_restart_delayed(struct sde_encoder_virt *sde_enc,
 	else
 		lp = SDE_MODE_DPMS_ON;
 
-	if (lp == SDE_MODE_DPMS_LP2)
+	fps = sde_enc->mode_info.frame_rate;
+	if ((lp == SDE_MODE_DPMS_LP1) || (lp == SDE_MODE_DPMS_LP2))
 		idle_pc_duration = IDLE_SHORT_TIMEOUT;
-	else
-		idle_pc_duration = IDLE_POWERCOLLAPSE_DURATION;
+	else {
+		frame_time_ms = 1000;
+		do_div(frame_time_ms, fps);
+		idle_pc_duration = max(4 * frame_time_ms, min_duration);
+		idle_pc_duration = min(idle_pc_duration, max_duration);
+	}
 
 	priv = drm_enc->dev->dev_private;
 	disp_thread = &priv->disp_thread[sde_enc->crtc->index];
@@ -1946,9 +1946,16 @@ static int _sde_encoder_rc_idle(struct drm_encoder *drm_enc,
 	struct msm_drm_private *priv;
 	struct sde_kms *sde_kms;
 	struct drm_crtc *crtc = drm_enc->crtc;
-	struct sde_crtc *sde_crtc = to_sde_crtc(crtc);
+	struct sde_crtc *sde_crtc;
 
 	priv = drm_enc->dev->dev_private;
+
+	if (!crtc || !sde_enc->cur_master || !priv->kms) {
+		SDE_ERROR("invalid args crtc:%d master:%d\n", !crtc, !sde_enc->cur_master);
+		return -EINVAL;
+	}
+
+	sde_crtc = to_sde_crtc(crtc);
 	sde_kms = to_sde_kms(priv->kms);
 
 	mutex_lock(&sde_enc->rc_lock);
@@ -1998,7 +2005,7 @@ static int _sde_encoder_rc_early_wakeup(struct drm_encoder *drm_enc,
 {
 	bool autorefresh_enabled = false;
 	struct msm_drm_thread *disp_thread;
-	int ret = 0;
+	int ret = 0, idle_pc_duration = 0;
 
 	if (!sde_enc->crtc ||
 		sde_enc->crtc->index >= ARRAY_SIZE(priv->disp_thread)) {
@@ -2026,11 +2033,14 @@ static int _sde_encoder_rc_early_wakeup(struct drm_encoder *drm_enc,
 			goto end;
 		}
 
-		if (!sde_crtc_frame_pending(sde_enc->crtc))
+		if (!sde_crtc_frame_pending(sde_enc->crtc)) {
 			kthread_mod_delayed_work(&disp_thread->worker,
 					&sde_enc->delayed_off_work,
 					msecs_to_jiffies(
 					IDLE_POWERCOLLAPSE_DURATION));
+			idle_pc_duration = IDLE_POWERCOLLAPSE_DURATION;
+		}
+
 	} else if (sde_enc->rc_state == SDE_ENC_RC_STATE_IDLE) {
 		/* enable all the clks and resources */
 		ret = _sde_encoder_resource_control_helper(drm_enc,
@@ -2058,12 +2068,13 @@ static int _sde_encoder_rc_early_wakeup(struct drm_encoder *drm_enc,
 				&sde_enc->delayed_off_work,
 				msecs_to_jiffies(
 				IDLE_POWERCOLLAPSE_IN_EARLY_WAKEUP));
+		idle_pc_duration = IDLE_POWERCOLLAPSE_IN_EARLY_WAKEUP;
 
 		sde_enc->rc_state = SDE_ENC_RC_STATE_ON;
 	}
 
-	SDE_EVT32(DRMID(drm_enc), sw_event, sde_enc->rc_state,
-			SDE_ENC_RC_STATE_ON, SDE_EVTLOG_FUNC_CASE8);
+	SDE_EVT32(DRMID(drm_enc), sw_event, sde_enc->rc_state, SDE_ENC_RC_STATE_ON,
+			idle_pc_duration, SDE_EVTLOG_FUNC_CASE8);
 
 end:
 	mutex_unlock(&sde_enc->rc_lock);
@@ -3905,8 +3916,13 @@ static void sde_encoder_input_event_work_handler(struct kthread_work *work)
 	struct sde_encoder_virt *sde_enc = container_of(work,
 				struct sde_encoder_virt, input_event_work);
 
-	if (!sde_enc) {
-		SDE_ERROR("invalid sde encoder\n");
+	if (!sde_enc || !sde_enc->input_handler) {
+		SDE_ERROR("invalid args sde encoder\n");
+		return;
+	}
+
+	if (!sde_enc->input_handler->private) {
+		SDE_DEBUG_ENC(sde_enc, "input handler is unregistered\n");
 		return;
 	}
 
@@ -4269,6 +4285,7 @@ static int _sde_encoder_reset_ctl_hw(struct drm_encoder *drm_enc)
 void sde_encoder_kickoff(struct drm_encoder *drm_enc, bool is_error,
 		bool config_changed)
 {
+	static bool first_run = true;
 	struct sde_encoder_virt *sde_enc;
 	struct sde_encoder_phys *phys;
 	unsigned int i;
@@ -4307,6 +4324,25 @@ void sde_encoder_kickoff(struct drm_encoder *drm_enc, bool is_error,
 		phys = sde_enc->phys_encs[i];
 		if (phys && phys->ops.handle_post_kickoff)
 			phys->ops.handle_post_kickoff(phys);
+	}
+
+	/*
+	 * Trigger a panel reset if this is the first kickoff and the refresh
+	 * rate is not 60 Hz
+	 */
+	if (cmpxchg(&first_run, true, false) &&
+		sde_enc->crtc->mode.vrefresh != 60) {
+		struct sde_connector *conn = container_of(phys->connector, struct sde_connector, base);
+		struct drm_event event = {
+			.type = DRM_EVENT_PANEL_DEAD,
+			.length = sizeof(bool)
+		};
+
+		conn->panel_dead = true;
+		event.type = DRM_EVENT_PANEL_DEAD;
+		event.length = sizeof(bool);
+		msm_mode_object_event_notify(&conn->base.base,
+			conn->base.dev, &event, (u8 *) &conn->panel_dead);
 	}
 
 	SDE_ATRACE_END("encoder_kickoff");
@@ -4876,6 +4912,9 @@ static int sde_encoder_setup_display(struct sde_encoder_virt *sde_enc,
 	if (disp_info->intf_type == DRM_MODE_CONNECTOR_DSI) {
 		*drm_enc_mode = DRM_MODE_ENCODER_DSI;
 		intf_type = INTF_DSI;
+	} else if (disp_info->intf_type == DRM_MODE_CONNECTOR_eDP) {
+		*drm_enc_mode = DRM_MODE_ENCODER_TMDS;
+		intf_type = INTF_DP;
 	} else if (disp_info->intf_type == DRM_MODE_CONNECTOR_HDMIA) {
 		*drm_enc_mode = DRM_MODE_ENCODER_TMDS;
 		intf_type = INTF_HDMI;
