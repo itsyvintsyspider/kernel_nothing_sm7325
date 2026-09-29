@@ -26,54 +26,82 @@
 	 * -45% across the board (0.55x). Vrms_mv left at stock -- that's
 	 * the LRA resonance-calibration reference, not a loudness knob;
 	 * scaling it risks breaking auto-cal instead of softening feel.
-	 * qcom,vmax-mv is also the ceiling haptics_set_gain() falls back
-	 * to if play->effect is ever NULL (see the parked "earthquake
-	 * tremor" investigation) -- lowering it caps that worst case too,
-	 * independent of whether that bug is real.
+	 * qcom,vmax-mv is the ceiling haptics_load_constant_effect() uses
+	 * for DIRECT_PLAY/raw-amplitude haptics (setAmplitude()-driven
+	 * feedback like scrollbar ticks) -- a real, separate path from the
+	 * predefined-effect table below, still worth keeping toned down.
 	 */
 	qcom,Vrms_mv = <1270>;
 	qcom,vmax-mv = <5033>; /* was 9150 */
 	qcom,lra-period-us = <5880>;
 	status = "ok";
 
+	/*
+	 * ROOT CAUSE of the "earthquake tremor" bug (was the parked
+	 * investigation, now resolved): none of these effect_N nodes --
+	 * not here, not in stock yupik-qrd.dtsi, not anywhere in this
+	 * driver's devicetree lineage -- ever set qcom,effect-id.
+	 * haptics_parse_effects_dt() (qcom-hv-haptics.c) counts nodes with
+	 * that property BEFORE parsing any of them; count is 0, so it
+	 * returns success immediately without allocating chip->effects at
+	 * all. chip->effects_count stays 0 forever, so
+	 * haptics_load_periodic_effect()'s very first check
+	 * (effects_count == 0) fails with -EINVAL for every single
+	 * canned/predefined effect (CLICK, TICK, HEAVY_CLICK, all of it) --
+	 * the entire per-effect qcom,wf-vmax-mv table below has never
+	 * actually been reachable. Something upstream falls back to the
+	 * constant/DIRECT_PLAY path on that failure, which uses the
+	 * top-level qcom,vmax-mv ceiling instead -- hence every haptic
+	 * feeling like the same generic full-strength buzz. IDs below
+	 * match the node-name comments and qcacld's own Effect enum
+	 * ordering (CLICK=0 ... HEAVY_CLICK=5); 7 is FIFO-sample-only per
+	 * the existing comment, not part of the enum sequence.
+	 */
 	effect_0 {
 		/* CLICK */
+		qcom,effect-id = <0>;
 		qcom,wf-vmax-mv = <1980>; /* was 3600 */
 		qcom,wf-pattern-period-us = <5880>;
 	};
 
 	effect_1 {
 		/* DOUBLE_CLICK */
+		qcom,effect-id = <1>;
 		qcom,wf-vmax-mv = <1980>; /* was 3600 */
 		qcom,wf-pattern-period-us = <5880>;
 	};
 
 	effect_2 {
 		/* TICK */
+		qcom,effect-id = <2>;
 		qcom,wf-vmax-mv = <1980>; /* was 3600 */
 		qcom,wf-pattern-period-us = <5880>;
 	};
 
 	effect_3 {
 		/* THUD */
+		qcom,effect-id = <3>;
 		qcom,wf-vmax-mv = <1980>; /* was 3600 */
 		qcom,wf-pattern-period-us = <5880>;
 	};
 
 	effect_4 {
 		/* POP */
+		qcom,effect-id = <4>;
 		qcom,wf-vmax-mv = <1980>; /* was 3600 */
 		qcom,wf-pattern-period-us = <5880>;
 	};
 
 	effect_5 {
 		/* HEAVY CLICK */
+		qcom,effect-id = <5>;
 		qcom,wf-vmax-mv = <1980>; /* was 3600 */
 		qcom,wf-pattern-period-us = <5880>;
 	};
 
 	effect_7 {
 		/* FIFO sample only */
+		qcom,effect-id = <7>;
 		qcom,wf-vmax-mv = <1980>; /* was 3600 */
 		qcom,wf-pattern-period-us = <5880>;
 	};
