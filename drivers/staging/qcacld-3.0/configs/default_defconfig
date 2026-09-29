@@ -470,7 +470,21 @@ endif
 #Whether have QMI support
 CONFIG_QMI_SUPPORT := y
 
+# CONFIG_ICNSS2_HELIUM alone does NOT mean genuine Adrastea hardware --
+# it's set by the SNOC branch of the CONFIG_ROME_IF selection above for
+# any ICNSS2 board, QCA6750 included (same root naming collision fixed
+# for target_type precedence in if_snoc.c, commit 9a07481df13ca). Without
+# this guard, every symbol below silently compiles in on our real QCA6750
+# board too: CONFIG_ADRASTEA_SHADOW_REGISTERS made hif_config_ce() run a
+# debug loop over Adrastea's shadow-register table via scn->targetdef,
+# which is QCA6750's (real, correctly populated) targetdef instead --
+# NULL pointer dereference at virtual address 0x60, confirmed via a real
+# captured panic disassembled against the exact matching vmlinux
+# (hif_config_ce+0x37c, offsetof matches this exact debug loop). Genuine
+# Adrastea boards use ICNSS(v1), not CNSS_QCA6750, so excluding it here
+# is unambiguous and doesn't touch real Adrastea-on-ICNSS2Helium boards.
 ifeq (y,$(findstring y,$(CONFIG_ICNSS) $(CONFIG_ICNSS_MODULE) $(CONFIG_ICNSS2_HELIUM)))
+ifneq ($(CONFIG_CNSS_QCA6750), y)
 CONFIG_WIFI_3_0_ADRASTEA := y
 CONFIG_ADRASTEA_RRI_ON_DDR := y
 # Enable athdiag procfs debug support for adrastea
@@ -479,6 +493,7 @@ CONFIG_ATH_PROCFS_DIAG_SUPPORT := y
 CONFIG_ATH_11AC_TXCOMPACT := y
 ifeq ($(CONFIG_QMI_SUPPORT), y)
 CONFIG_ADRASTEA_SHADOW_REGISTERS := y
+endif
 endif
 endif
 
