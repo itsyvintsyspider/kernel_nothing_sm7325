@@ -3248,6 +3248,28 @@ cppflags-$(CONFIG_WLAN_SYNC_TSF_PLUS_NOIRQ) += -DWLAN_FEATURE_TSF_PLUS_NOIRQ
 cppflags-$(CONFIG_ATH_PROCFS_DIAG_SUPPORT) += -DCONFIG_ATH_PROCFS_DIAG_SUPPORT
 
 cppflags-$(CONFIG_HELIUMPLUS) += -DHELIUMPLUS
+#
+# QCA_WIFI_SUPPORT_SRNG was never defined anywhere in this build despite
+# being #ifdef-checked throughout hif/src/ce/ce_main.c. Concretely: with
+# it undefined, hif_ce_service_init() always calls ce_service_legacy_init()
+# (registering only CE_SVC_LEGACY into ce_attach_register[]), but
+# ce_services_attach()'s *runtime* check ce_srng_based(scn) returns true
+# for our actual hardware (TARGET_TYPE_QCA6750 is in ce_srng_based()'s
+# switch) and looks up ce_attach_register[CE_SVC_SRNG] instead -- a slot
+# that was never populated. hif_state->ce_services ends up NULL, and the
+# first real caller (hif_wlan_enable() -> hif_prepare_hal_shadow_register_cfg()
+# -> hif_state->ce_services->ce_prepare_shadow_register_v2_cfg(...)) NULL-
+# derefs. Confirmed by disassembling the actual panic (icnss_driver_event_work
+# -> ... -> hif_wlan_enable, Unable to handle kernel NULL pointer dereference
+# at virtual address 0x68 -- 0x68 is ce_prepare_shadow_register_v2_cfg's
+# offset in struct ce_ops). Same class of incomplete-backport gap as the
+# missing CONFIG_WLAN_RESIDENT_DRIVER and ce_service_srng.c HELIUMPLUS
+# fixes elsewhere in this bring-up. Gated on CONFIG_HELIUMPLUS specifically
+# (not CONFIG_HIF_PCI/IPCI/SNOC broadly) since that's the same flag that
+# already correctly marks genuinely SRNG-capable Lithium-generation
+# hardware for the ce_service_srng.c fix above -- avoids forcing SRNG mode
+# on older non-Lithium PCI boards this same Kbuild may also serve.
+cppflags-$(CONFIG_HELIUMPLUS) += -DQCA_WIFI_SUPPORT_SRNG
 cppflags-$(CONFIG_RX_OL) += -DRECEIVE_OFFLOAD
 cppflags-$(CONFIG_TX_TID_OVERRIDE) += -DATH_TX_PRI_OVERRIDE
 cppflags-$(CONFIG_AR900B) += -DAR900B
