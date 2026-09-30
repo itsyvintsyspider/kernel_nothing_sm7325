@@ -37,6 +37,23 @@
 	status = "ok";
 
 	/*
+	 * "Watery"/mushy feel root cause: brake.mode already defaults to
+	 * AUTO_BRAKE in the driver (qcom-hv-haptics.c) even unset, but
+	 * brake.sine_gain defaults to the weakest setting, BRAKE_SINE_GAIN_X1,
+	 * since nothing here ever set qcom,brake-sine-gain. Weak brake gain
+	 * means the LRA keeps ringing after each pulse instead of stopping
+	 * hard, which reads as mushy/watery. qcom,brake-mode is set explicitly
+	 * below even though it matches the existing default, just to document
+	 * intent. Values are enum brake_mode / sine_gain indices, not raw
+	 * register bits: mode 3 = AUTO_BRAKE, gain 2 = BRAKE_SINE_GAIN_X4
+	 * (valid range 0-3, X1..X8). Applies globally; every predefined effect
+	 * inherits this via memcpy in haptics_parse_per_effect_dt() unless a
+	 * qcom,wf-brake-* property overrides it per-effect.
+	 */
+	qcom,brake-mode = <3>; /* AUTO_BRAKE */
+	qcom,brake-sine-gain = <2>; /* BRAKE_SINE_GAIN_X4, was implicit X1 */
+
+	/*
 	 * ROOT CAUSE of the "earthquake tremor" bug (was the parked
 	 * investigation, now resolved): none of these effect_N nodes --
 	 * not here, not in stock yupik-qrd.dtsi, not anywhere in this
