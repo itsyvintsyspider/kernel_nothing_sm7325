@@ -56,13 +56,15 @@
 	 * hard, which reads as mushy/watery. qcom,brake-mode is set explicitly
 	 * below even though it matches the existing default, just to document
 	 * intent. Values are enum brake_mode / sine_gain indices, not raw
-	 * register bits: mode 3 = AUTO_BRAKE, gain 2 = BRAKE_SINE_GAIN_X4
-	 * (valid range 0-3, X1..X8). Applies globally; every predefined effect
-	 * inherits this via memcpy in haptics_parse_per_effect_dt() unless a
-	 * qcom,wf-brake-* property overrides it per-effect.
+	 * register bits: mode 3 = AUTO_BRAKE, gain 3 = BRAKE_SINE_GAIN_X8, the
+	 * max (valid range 0-3, X1..X8). Raised from X4 -> X8 for a harder,
+	 * shorter stop (less ring-out after each pulse reads as tighter).
+	 * Applies globally; every predefined effect inherits this via memcpy
+	 * in haptics_parse_per_effect_dt() unless a qcom,wf-brake-* property
+	 * overrides it per-effect.
 	 */
 	qcom,brake-mode = <3>; /* AUTO_BRAKE */
-	qcom,brake-sine-gain = <2>; /* BRAKE_SINE_GAIN_X4, was implicit X1 */
+	qcom,brake-sine-gain = <3>; /* BRAKE_SINE_GAIN_X8, was X4 */
 
 	/*
 	 * ROOT CAUSE of the "earthquake tremor" bug (was the parked
@@ -106,6 +108,13 @@
 	 * MAX_VMAX_MV directly, so there's no reason to leave headroom
 	 * between them. Distinctness comes from the pattern shapes, not
 	 * from varying the ceiling per effect.
+	 *
+	 * Tightened one step further per-effect (DIV_2->DIV_4, DIV_4->DIV_8
+	 * where not already at the floor) on everything except THUD, whose
+	 * longer T_LRA/T_LRA_X_2 periods are deliberately what makes it
+	 * read as heavy rather than sloppy -- shortening those would work
+	 * against the distinction, not tighten it. Paired with the brake
+	 * gain going to X8 above for a harder stop.
 	 */
 	effect_0 {
 		/* CLICK -- short, clean single snap. General-purpose (most
@@ -114,10 +123,10 @@
 		 */
 		qcom,effect-id = <0>;
 		qcom,wf-vmax-mv = <10450>;
-		qcom,wf-pattern-data = <0x060 S_PERIOD_T_LRA_DIV_2 0>,
-					<0x140 S_PERIOD_T_LRA_DIV_2 0>,
-					<0x0a0 S_PERIOD_T_LRA_DIV_2 0>,
-					<0x020 S_PERIOD_T_LRA_DIV_2 0>;
+		qcom,wf-pattern-data = <0x060 S_PERIOD_T_LRA_DIV_4 0>,
+					<0x140 S_PERIOD_T_LRA_DIV_4 0>,
+					<0x0a0 S_PERIOD_T_LRA_DIV_4 0>,
+					<0x020 S_PERIOD_T_LRA_DIV_4 0>;
 		qcom,wf-pattern-period-us = <5880>;
 	};
 
@@ -128,11 +137,11 @@
 		 */
 		qcom,effect-id = <1>;
 		qcom,wf-vmax-mv = <10450>;
-		qcom,wf-pattern-data = <0x140 S_PERIOD_T_LRA_DIV_4 0>,
-					<0x020 S_PERIOD_T_LRA_DIV_4 0>,
+		qcom,wf-pattern-data = <0x140 S_PERIOD_T_LRA_DIV_8 0>,
+					<0x020 S_PERIOD_T_LRA_DIV_8 0>,
 					<0x000 S_PERIOD_T_LRA_DIV_2 0>,
-					<0x140 S_PERIOD_T_LRA_DIV_4 0>,
-					<0x020 S_PERIOD_T_LRA_DIV_4 0>;
+					<0x140 S_PERIOD_T_LRA_DIV_8 0>,
+					<0x020 S_PERIOD_T_LRA_DIV_8 0>;
 		qcom,wf-pattern-period-us = <5880>;
 	};
 
@@ -143,8 +152,8 @@
 		 */
 		qcom,effect-id = <2>;
 		qcom,wf-vmax-mv = <10450>;
-		qcom,wf-pattern-data = <0x0a0 S_PERIOD_T_LRA_DIV_4 0>,
-					<0x030 S_PERIOD_T_LRA_DIV_4 0>;
+		qcom,wf-pattern-data = <0x0a0 S_PERIOD_T_LRA_DIV_8 0>,
+					<0x030 S_PERIOD_T_LRA_DIV_8 0>;
 		qcom,wf-pattern-period-us = <5880>;
 	};
 
@@ -171,8 +180,8 @@
 		qcom,effect-id = <4>;
 		qcom,wf-vmax-mv = <10450>;
 		qcom,wf-pattern-data = <0x1a0 S_PERIOD_T_LRA_DIV_8 0>,
-					<0x1ff S_PERIOD_T_LRA_DIV_4 0>,
-					<0x080 S_PERIOD_T_LRA_DIV_4 0>;
+					<0x1ff S_PERIOD_T_LRA_DIV_8 0>,
+					<0x080 S_PERIOD_T_LRA_DIV_8 0>;
 		qcom,wf-pattern-period-us = <5880>;
 	};
 
@@ -183,11 +192,11 @@
 		 */
 		qcom,effect-id = <5>;
 		qcom,wf-vmax-mv = <10450>;
-		qcom,wf-pattern-data = <0x0e0 S_PERIOD_T_LRA_DIV_2 0>,
-					<0x1c0 S_PERIOD_T_LRA_DIV_2 0>,
-					<0x1e0 S_PERIOD_T_LRA_DIV_2 0>,
-					<0x0e0 S_PERIOD_T_LRA_DIV_2 0>,
-					<0x020 S_PERIOD_T_LRA_DIV_2 0>;
+		qcom,wf-pattern-data = <0x0e0 S_PERIOD_T_LRA_DIV_4 0>,
+					<0x1c0 S_PERIOD_T_LRA_DIV_4 0>,
+					<0x1e0 S_PERIOD_T_LRA_DIV_4 0>,
+					<0x0e0 S_PERIOD_T_LRA_DIV_4 0>,
+					<0x020 S_PERIOD_T_LRA_DIV_4 0>;
 		qcom,wf-pattern-period-us = <5880>;
 	};
 
