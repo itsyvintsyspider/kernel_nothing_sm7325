@@ -74,45 +74,106 @@
 	 * ordering (CLICK=0 ... HEAVY_CLICK=5); 7 is FIFO-sample-only per
 	 * the existing comment, not part of the enum sequence.
 	 */
+	/*
+	 * "All effects feel the same"/"tapping water" (2nd bug, found after
+	 * the effect-id fix above): pm8350b.dtsi's own effect_0 through
+	 * effect_5 all share the exact same 8-tuple qcom,wf-pattern-data
+	 * (a generic Qualcomm reference-template envelope), the same
+	 * qcom,wf-vmax-mv, and the same period -- so at the hardware level
+	 * CLICK/DOUBLE_CLICK/TICK/THUD/POP/HEAVY_CLICK were always
+	 * physically identical vibrations, just wrapped under different
+	 * effect IDs. Only effect_7 (FIFO, not part of the standard Effect
+	 * enum) ever had a real distinct waveform. Each tuple below is
+	 * (amplitude <=0x1ff, per-step period, f_lra_x2); period/amplitude
+	 * meanings and macro names from dt-bindings/input/qcom,hv-haptics.h
+	 * (already in scope via pm8350b.dtsi's own #include). Shorter
+	 * per-step periods (DIV_2/DIV_4/DIV_8) read as tighter/snappier;
+	 * longer ones (T_LRA/X_2) read as heavier/slower. qcom,wf-vmax-mv
+	 * is differentiated per effect too, still under stock's 3600mV
+	 * ceiling, keeping the overall toned-down feel while giving real
+	 * separation matching each name's intent.
+	 */
 	effect_0 {
-		/* CLICK */
+		/* CLICK -- short, clean single snap. General-purpose (most
+		 * UI touches route here); framework's UDFPS-success routing
+		 * moved off this to POP (effect_4), see frameworks/base.
+		 */
 		qcom,effect-id = <0>;
-		qcom,wf-vmax-mv = <1980>; /* was 3600 */
+		qcom,wf-vmax-mv = <1980>;
+		qcom,wf-pattern-data = <0x060 S_PERIOD_T_LRA_DIV_2 0>,
+					<0x140 S_PERIOD_T_LRA_DIV_2 0>,
+					<0x0a0 S_PERIOD_T_LRA_DIV_2 0>,
+					<0x020 S_PERIOD_T_LRA_DIV_2 0>;
 		qcom,wf-pattern-period-us = <5880>;
 	};
 
 	effect_1 {
-		/* DOUBLE_CLICK */
+		/* DOUBLE_CLICK ("ti-tick") -- two short pulses with a real
+		 * silent gap between them, not one blob. This is what
+		 * BIOMETRIC_REJECT (UDFPS auth failure) actually plays.
+		 */
 		qcom,effect-id = <1>;
-		qcom,wf-vmax-mv = <1980>; /* was 3600 */
+		qcom,wf-vmax-mv = <1980>;
+		qcom,wf-pattern-data = <0x140 S_PERIOD_T_LRA_DIV_4 0>,
+					<0x020 S_PERIOD_T_LRA_DIV_4 0>,
+					<0x000 S_PERIOD_T_LRA_DIV_2 0>,
+					<0x140 S_PERIOD_T_LRA_DIV_4 0>,
+					<0x020 S_PERIOD_T_LRA_DIV_4 0>;
 		qcom,wf-pattern-period-us = <5880>;
 	};
 
 	effect_2 {
-		/* TICK */
+		/* TICK -- lightest, briefest, barely-there tap. Lower
+		 * ceiling than the others, not just shorter duration.
+		 */
 		qcom,effect-id = <2>;
-		qcom,wf-vmax-mv = <1980>; /* was 3600 */
+		qcom,wf-vmax-mv = <1100>;
+		qcom,wf-pattern-data = <0x0a0 S_PERIOD_T_LRA_DIV_4 0>,
+					<0x030 S_PERIOD_T_LRA_DIV_4 0>;
 		qcom,wf-pattern-period-us = <5880>;
 	};
 
 	effect_3 {
-		/* THUD */
+		/* THUD -- deeper, heavier, slower. Long per-step periods
+		 * (T_LRA/X_2) instead of short ones is what reads as
+		 * "weight" rather than just "loud".
+		 */
 		qcom,effect-id = <3>;
-		qcom,wf-vmax-mv = <1980>; /* was 3600 */
+		qcom,wf-vmax-mv = <2400>;
+		qcom,wf-pattern-data = <0x0c0 S_PERIOD_T_LRA 0>,
+					<0x1a0 S_PERIOD_T_LRA 0>,
+					<0x160 S_PERIOD_T_LRA_X_2 0>,
+					<0x080 S_PERIOD_T_LRA_X_2 0>;
 		qcom,wf-pattern-period-us = <5880>;
 	};
 
 	effect_4 {
-		/* POP */
+		/* POP -- sharp, punchy, brief spike-then-decay. Now also
+		 * what BIOMETRIC_CONFIRM (UDFPS auth success) plays,
+		 * routed here in frameworks/base's HapticFeedbackVibration-
+		 * Provider instead of falling through to generic CLICK.
+		 */
 		qcom,effect-id = <4>;
-		qcom,wf-vmax-mv = <1980>; /* was 3600 */
+		qcom,wf-vmax-mv = <2200>;
+		qcom,wf-pattern-data = <0x1a0 S_PERIOD_T_LRA_DIV_8 0>,
+					<0x1ff S_PERIOD_T_LRA_DIV_4 0>,
+					<0x080 S_PERIOD_T_LRA_DIV_4 0>;
 		qcom,wf-pattern-period-us = <5880>;
 	};
 
 	effect_5 {
-		/* HEAVY CLICK */
+		/* HEAVY CLICK -- strongest single click: higher peak and
+		 * one more step of sustain than CLICK, clearly the
+		 * strongest of the click family without hitting stock's
+		 * full 3600mV ceiling.
+		 */
 		qcom,effect-id = <5>;
-		qcom,wf-vmax-mv = <1980>; /* was 3600 */
+		qcom,wf-vmax-mv = <2600>;
+		qcom,wf-pattern-data = <0x0e0 S_PERIOD_T_LRA_DIV_2 0>,
+					<0x1c0 S_PERIOD_T_LRA_DIV_2 0>,
+					<0x1e0 S_PERIOD_T_LRA_DIV_2 0>,
+					<0x0e0 S_PERIOD_T_LRA_DIV_2 0>,
+					<0x020 S_PERIOD_T_LRA_DIV_2 0>;
 		qcom,wf-pattern-period-us = <5880>;
 	};
 
