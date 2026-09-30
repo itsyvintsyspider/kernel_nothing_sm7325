@@ -25,6 +25,64 @@
 };
 
 /*
+ * Real codec selection for Spacewar hardware. yupik-audio-overlay.dtsi's
+ * default (QRD reference) leaves wcd937x enabled; Spacewar actually
+ * carries wcd938x, matching the acdbdata path already in the vendor
+ * blobs (lahaina-yupikqrd-snd-card/QRD_Yupik_Bluetooth_cal.acdb) and
+ * the ACDB tuning this device's mixer_paths_yupikqrd.xml was built
+ * against. wsa883x/wsa_macro (WCD-integrated speaker amps) are
+ * disabled because Spacewar uses external tfa98xx amps instead (see
+ * the tfa98xx@34/@35 block above). From Willay's nothing-spacewar-
+ * audio-overlay.dtsi -- this section didn't make it into the original
+ * port, only the routing/MI2S pieces below did.
+ */
+&wsa883x_0221 {
+	status = "disabled";
+};
+
+&wsa883x_0222 {
+	qcom,spkr-sd-n-node = <&wsa_spkr_en1>;
+	status = "disabled";
+};
+
+&swr_haptics {
+	status = "okay";
+	swr-slave-supply = <&hap_swr_slave_reg>;
+};
+
+&wcd938x_rx_slave {
+	status = "okay";
+};
+
+&wcd938x_tx_slave {
+	status = "okay";
+};
+
+&wcd938x_codec {
+	status = "okay";
+};
+
+&wcd937x_codec {
+	status = "disabled";
+};
+
+&wcd937x_rx_slave {
+	status = "disabled";
+};
+
+&wcd937x_tx_slave {
+	status = "disabled";
+};
+
+&bolero {
+	qcom,num-macros = <3>;
+};
+
+&wsa_macro {
+	status = "disabled";
+};
+
+/*
  * Ensures the MI2S backend links exist now that audio nodes are also
  * touched via this separate overlay layer, and adds the pri-TDM
  * pinctrl consumer (aux/TDM path) -- the pin states themselves
@@ -34,6 +92,18 @@
  */
 &yupik_snd {
 	qcom,mi2s-audio-intf = <1>;
+	qcom,model = "lahaina-yupikqrd-snd-card";
+	qcom,swr-dmic-max-devs = <0>;
+	qcom,msm-mbhc-usbc-audio-supported = <1>;
+	qcom,msm-mbhc-hphl-swh = <0>;
+	qcom,msm-mbhc-gnd-swh = <0>;
+	asoc-codec = <&stub_codec>, <&bolero>,
+		<&wcd938x_codec>, <&swr_haptics>,
+		<&ext_disp_audio_codec>;
+	asoc-codec-names = "msm-stub-codec.1", "bolero_codec",
+		"wcd938x_codec", "swr-haptics",
+		"msm-ext-disp-audio-codec-rx";
+	qcom,wsa-max-devs = <0>;
 
 	/*
 	 * qcom,audio-routing is one array property -- can't override a
