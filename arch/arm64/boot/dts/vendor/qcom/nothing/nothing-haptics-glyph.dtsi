@@ -109,12 +109,24 @@
 	 * between them. Distinctness comes from the pattern shapes, not
 	 * from varying the ceiling per effect.
 	 *
-	 * Tightened one step further per-effect (DIV_2->DIV_4, DIV_4->DIV_8
-	 * where not already at the floor) on everything except THUD, whose
-	 * longer T_LRA/T_LRA_X_2 periods are deliberately what makes it
-	 * read as heavy rather than sloppy -- shortening those would work
-	 * against the distinction, not tighten it. Paired with the brake
-	 * gain going to X8 above for a harder stop.
+	 * Maxed out for tightness across every effect, including THUD this
+	 * time (explicit request: tightest possible, no exceptions). All
+	 * periods now at the DIV_8 floor -- the shortest this waveform
+	 * format supports -- and step counts trimmed to the minimum that
+	 * still gives each effect a real attack+decay shape (2-3 tuples,
+	 * down from 4-5). THUD keeps a two-step amplitude shape (peak then
+	 * lower sustain) so it's still not byte-identical to CLICK, but its
+	 * distinct "heavy" character now comes only from that shape, not
+	 * from longer timing -- that tradeoff is deliberate, this request
+	 * explicitly overrides the earlier one to leave it alone. Paired
+	 * with the brake gain at X8 (max) above for a harder stop.
+	 *
+	 * One exception, not blanket-applied: DOUBLE_CLICK's silent gap
+	 * step is DIV_4, not DIV_8 like its two pulses. Collapsing the gap
+	 * all the way risks the two taps blurring into one continuous
+	 * buzz, which would defeat the entire reason this effect exists
+	 * (the "ti-tick" two-tap feel). Tightened one step from its
+	 * previous DIV_2, not maxed.
 	 */
 	effect_0 {
 		/* CLICK -- short, clean single snap. General-purpose (most
@@ -123,10 +135,8 @@
 		 */
 		qcom,effect-id = <0>;
 		qcom,wf-vmax-mv = <10450>;
-		qcom,wf-pattern-data = <0x060 S_PERIOD_T_LRA_DIV_4 0>,
-					<0x140 S_PERIOD_T_LRA_DIV_4 0>,
-					<0x0a0 S_PERIOD_T_LRA_DIV_4 0>,
-					<0x020 S_PERIOD_T_LRA_DIV_4 0>;
+		qcom,wf-pattern-data = <0x140 S_PERIOD_T_LRA_DIV_8 0>,
+					<0x020 S_PERIOD_T_LRA_DIV_8 0>;
 		qcom,wf-pattern-period-us = <5880>;
 	};
 
@@ -139,7 +149,7 @@
 		qcom,wf-vmax-mv = <10450>;
 		qcom,wf-pattern-data = <0x140 S_PERIOD_T_LRA_DIV_8 0>,
 					<0x020 S_PERIOD_T_LRA_DIV_8 0>,
-					<0x000 S_PERIOD_T_LRA_DIV_2 0>,
+					<0x000 S_PERIOD_T_LRA_DIV_4 0>,
 					<0x140 S_PERIOD_T_LRA_DIV_8 0>,
 					<0x020 S_PERIOD_T_LRA_DIV_8 0>;
 		qcom,wf-pattern-period-us = <5880>;
@@ -158,16 +168,16 @@
 	};
 
 	effect_3 {
-		/* THUD -- deeper, heavier, slower. Long per-step periods
-		 * (T_LRA/X_2) instead of short ones is what reads as
-		 * "weight" rather than just "loud".
+		/* THUD -- was long T_LRA/T_LRA_X_2 periods for a deliberate
+		 * "heavy" feel; now DIV_8 like everything else per explicit
+		 * "tightest across the board" request. Weight now comes only
+		 * from the two-step peak-then-sustain amplitude shape, not
+		 * from timing.
 		 */
 		qcom,effect-id = <3>;
 		qcom,wf-vmax-mv = <10450>;
-		qcom,wf-pattern-data = <0x0c0 S_PERIOD_T_LRA 0>,
-					<0x1a0 S_PERIOD_T_LRA 0>,
-					<0x160 S_PERIOD_T_LRA_X_2 0>,
-					<0x080 S_PERIOD_T_LRA_X_2 0>;
+		qcom,wf-pattern-data = <0x1a0 S_PERIOD_T_LRA_DIV_8 0>,
+					<0x080 S_PERIOD_T_LRA_DIV_8 0>;
 		qcom,wf-pattern-period-us = <5880>;
 	};
 
@@ -179,8 +189,7 @@
 		 */
 		qcom,effect-id = <4>;
 		qcom,wf-vmax-mv = <10450>;
-		qcom,wf-pattern-data = <0x1a0 S_PERIOD_T_LRA_DIV_8 0>,
-					<0x1ff S_PERIOD_T_LRA_DIV_8 0>,
+		qcom,wf-pattern-data = <0x1ff S_PERIOD_T_LRA_DIV_8 0>,
 					<0x080 S_PERIOD_T_LRA_DIV_8 0>;
 		qcom,wf-pattern-period-us = <5880>;
 	};
@@ -192,11 +201,9 @@
 		 */
 		qcom,effect-id = <5>;
 		qcom,wf-vmax-mv = <10450>;
-		qcom,wf-pattern-data = <0x0e0 S_PERIOD_T_LRA_DIV_4 0>,
-					<0x1c0 S_PERIOD_T_LRA_DIV_4 0>,
-					<0x1e0 S_PERIOD_T_LRA_DIV_4 0>,
-					<0x0e0 S_PERIOD_T_LRA_DIV_4 0>,
-					<0x020 S_PERIOD_T_LRA_DIV_4 0>;
+		qcom,wf-pattern-data = <0x1c0 S_PERIOD_T_LRA_DIV_8 0>,
+					<0x1e0 S_PERIOD_T_LRA_DIV_8 0>,
+					<0x020 S_PERIOD_T_LRA_DIV_8 0>;
 		qcom,wf-pattern-period-us = <5880>;
 	};
 
