@@ -599,6 +599,7 @@ struct haptics_chip {
 	struct mmap_buf_format *current_buf;
 	struct work_struct richtap_stream_work;
 	struct work_struct richtap_erase_work;
+	struct workqueue_struct *richtap_wq;
 	int16_t pos;
 	atomic_t richtap_mode;
 	bool f0_flag;
@@ -5272,7 +5273,7 @@ static long richtap_file_unlocked_ioctl(struct file *file, unsigned int cmd, uns
 		haptics_set_fifo_empty_threshold(chip, 0);
 		haptics_stop_fifo_play(chip);
 		mutex_unlock(&chip->play.lock);
-		schedule_work(&chip->richtap_stream_work);
+		queue_work(chip->richtap_wq, &chip->richtap_stream_work);
 		break;
 	case RICHTAP_STOP_MODE:
 		atomic_set(&chip->richtap_mode, false);
@@ -5526,6 +5527,22 @@ static int haptics_probe(struct platform_device *pdev)
 	INIT_WORK(&chip->richtap_stream_work, richtap_work_proc);
 	INIT_WORK(&chip->richtap_erase_work, richtap_erase_work_proc);
 
+	/*
+	 * richtap_stream_work refills the FIFO for ringtone/alarm/
+	 * notification/call haptics (streamed patterns, not predefined
+	 * effects). Default schedule_work() puts it on system_wq, a
+	 * shared, non-realtime queue -- under normal system load (a
+	 * ringing phone always has audio/display/wakelock activity) the
+	 * refill can lag the FIFO drain, causing an underrun that feels
+	 * and sounds like crackle. WQ_HIGHPRI cuts that scheduling
+	 * latency. Same reasoning as the dm-verity kverityd workqueue fix.
+	 */
+	chip->richtap_wq = alloc_workqueue("richtap_wq", WQ_HIGHPRI, 0);
+	if (!chip->richtap_wq) {
+		dev_err(chip->dev, "Error allocating richtap_wq failed\n");
+		goto destroy_richtap;
+	}
+
 	misc_register(&richtap_misc);
 
 	atomic_set(&chip->richtap_mode, false);
@@ -5562,6 +5579,8 @@ static int haptics_remove(struct platform_device *pdev)
 #endif
 
 #ifdef RICHTAP_FOR_PMIC_ENABLE
+	if (chip->richtap_wq)
+		destroy_workqueue(chip->richtap_wq);
 	kfree(chip->rtp_ptr);
 	free_pages((unsigned long)chip->start_buf, RICHTAP_MMAP_PAGE_ORDER);
 #endif //RICHTAP_FOR_PMIC_ENABLE
