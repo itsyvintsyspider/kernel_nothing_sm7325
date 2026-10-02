@@ -762,12 +762,15 @@ KBUILD_CFLAGS += -Os
 endif
 
 ifdef CONFIG_CC_IS_CLANG
-KBUILD_CFLAGS += -mcpu=cortex-a55
-KBUILD_AFLAGS += -mcpu=cortex-a55
+# Optimize specifically for Snapdragon 778G+ Kryo 670 (Cortex-A78 + Cortex-A55)
+KBUILD_CFLAGS += -march=armv8.2-a+crypto+dotprod -mcpu=cortex-a78 -mtune=cortex-a78
+KBUILD_AFLAGS += -march=armv8.2-a+crypto+dotprod -mcpu=cortex-a78 -mtune=cortex-a78
 else
-KBUILD_CFLAGS += -mcpu=cortex-a76.cortex-a55
-KBUILD_AFLAGS += -mcpu=cortex-a76.cortex-a55
+# Proper architecture fallback match if GCC is ever invoked
+KBUILD_CFLAGS += -mcpu=cortex-a78.cortex-a55
+KBUILD_AFLAGS += -mcpu=cortex-a78.cortex-a55
 endif
+
 
 # Tell gcc to never replace conditional load with a non-conditional one
 KBUILD_CFLAGS	+= $(call cc-option,--param=allow-store-data-races=0)
