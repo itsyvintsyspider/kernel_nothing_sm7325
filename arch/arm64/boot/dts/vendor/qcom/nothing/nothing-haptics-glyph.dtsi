@@ -22,112 +22,16 @@
 	nvmem = <&pmk8350_sdam_46>;
 	qcom,pbs-client = <&pm8350b_pbs2>;
 
-	/*
-	 * qcom,vmax-mv: pushed to 10450 (95% of MAX_VMAX_MV, the driver's
-	 * hard validation ceiling at 11000 -- config->vmax_mv >= MAX_VMAX_MV
-	 * is a parse failure, so this stays under it with a safety margin
-	 * rather than right at the edge). Was stock 9150 before this; the
-	 * earlier -45% cut (5033, for the original "earthquake tremor"
-	 * complaint before predefined effects even worked) turned out to
-	 * also cap RichTap's own gain ceiling -- RICHTAP_SETTING_GAIN's
-	 * ioctl handler scales as (arg * chip->config.vmax_mv) / 128, and
-	 * config.vmax_mv comes straight from this property. Confirmed by
-	 * diffing against LineageOS's kernel (los-ref remote, lineage-24.0).
-	 * perform() no longer routes through RichTap at all (see
-	 * device/nothing/Spacewar's Vibrator.cpp -- RichTap's predefined-
-	 * effect calibration turned out to be a separate, closed, faint
-	 * path we couldn't fix), but this ceiling still matters for
-	 * on()/setAmplitude(), which do stay on RichTap and are confirmed
-	 * working. Vrms_mv left at stock -- that's the LRA resonance-
-	 * calibration reference, not a loudness knob; scaling it risks
-	 * breaking auto-cal instead of changing feel.
-	 */
+
 	qcom,Vrms_mv = <1270>;
 	qcom,vmax-mv = <10450>;
 	qcom,lra-period-us = <5880>;
 	status = "ok";
 
-	/*
-	 * "Watery"/mushy feel root cause: brake.mode already defaults to
-	 * AUTO_BRAKE in the driver (qcom-hv-haptics.c) even unset, but
-	 * brake.sine_gain defaults to the weakest setting, BRAKE_SINE_GAIN_X1,
-	 * since nothing here ever set qcom,brake-sine-gain. Weak brake gain
-	 * means the LRA keeps ringing after each pulse instead of stopping
-	 * hard, which reads as mushy/watery. qcom,brake-mode is set explicitly
-	 * below even though it matches the existing default, just to document
-	 * intent. Values are enum brake_mode / sine_gain indices, not raw
-	 * register bits: mode 3 = AUTO_BRAKE, gain 3 = BRAKE_SINE_GAIN_X8, the
-	 * max (valid range 0-3, X1..X8). Raised from X4 -> X8 for a harder,
-	 * shorter stop (less ring-out after each pulse reads as tighter).
-	 * Applies globally; every predefined effect inherits this via memcpy
-	 * in haptics_parse_per_effect_dt() unless a qcom,wf-brake-* property
-	 * overrides it per-effect.
-	 */
 	qcom,brake-mode = <3>; /* AUTO_BRAKE */
 	qcom,brake-sine-gain = <3>; /* BRAKE_SINE_GAIN_X8, was X4 */
 
-	/*
-	 * ROOT CAUSE of the "earthquake tremor" bug (was the parked
-	 * investigation, now resolved): none of these effect_N nodes --
-	 * not here, not in stock yupik-qrd.dtsi, not anywhere in this
-	 * driver's devicetree lineage -- ever set qcom,effect-id.
-	 * haptics_parse_effects_dt() (qcom-hv-haptics.c) counts nodes with
-	 * that property BEFORE parsing any of them; count is 0, so it
-	 * returns success immediately without allocating chip->effects at
-	 * all. chip->effects_count stays 0 forever, so
-	 * haptics_load_periodic_effect()'s very first check
-	 * (effects_count == 0) fails with -EINVAL for every single
-	 * canned/predefined effect (CLICK, TICK, HEAVY_CLICK, all of it) --
-	 * the entire per-effect qcom,wf-vmax-mv table below has never
-	 * actually been reachable. Something upstream falls back to the
-	 * constant/DIRECT_PLAY path on that failure, which uses the
-	 * top-level qcom,vmax-mv ceiling instead -- hence every haptic
-	 * feeling like the same generic full-strength buzz. IDs below
-	 * match the node-name comments and qcacld's own Effect enum
-	 * ordering (CLICK=0 ... HEAVY_CLICK=5); 7 is FIFO-sample-only per
-	 * the existing comment, not part of the enum sequence.
-	 */
-	/*
-	 * "All effects feel the same"/"tapping water" (2nd bug, found after
-	 * the effect-id fix above): pm8350b.dtsi's own effect_0 through
-	 * effect_5 all share the exact same 8-tuple qcom,wf-pattern-data
-	 * (a generic Qualcomm reference-template envelope), the same
-	 * qcom,wf-vmax-mv, and the same period -- so at the hardware level
-	 * CLICK/DOUBLE_CLICK/TICK/THUD/POP/HEAVY_CLICK were always
-	 * physically identical vibrations, just wrapped under different
-	 * effect IDs. Only effect_7 (FIFO, not part of the standard Effect
-	 * enum) ever had a real distinct waveform. Each tuple below is
-	 * (amplitude <=0x1ff, per-step period, f_lra_x2); period/amplitude
-	 * meanings and macro names from dt-bindings/input/qcom,hv-haptics.h
-	 * (already in scope via pm8350b.dtsi's own #include). Shorter
-	 * per-step periods (DIV_2/DIV_4/DIV_8) read as tighter/snappier;
-	 * longer ones (T_LRA/X_2) read as heavier/slower. qcom,wf-vmax-mv is
-	 * 10450 (matching the top-level ceiling, same 95%-of-MAX_VMAX_MV
-	 * margin) on every effect here -- per-effect vmax isn't actually
-	 * bounded by the top-level property in the driver, only by
-	 * MAX_VMAX_MV directly, so there's no reason to leave headroom
-	 * between them. Distinctness comes from the pattern shapes, not
-	 * from varying the ceiling per effect.
-	 *
-	 * Maxed out for tightness across every effect, including THUD this
-	 * time (explicit request: tightest possible, no exceptions). All
-	 * periods now at the DIV_8 floor -- the shortest this waveform
-	 * format supports -- and step counts trimmed to the minimum that
-	 * still gives each effect a real attack+decay shape (2-3 tuples,
-	 * down from 4-5). THUD keeps a two-step amplitude shape (peak then
-	 * lower sustain) so it's still not byte-identical to CLICK, but its
-	 * distinct "heavy" character now comes only from that shape, not
-	 * from longer timing -- that tradeoff is deliberate, this request
-	 * explicitly overrides the earlier one to leave it alone. Paired
-	 * with the brake gain at X8 (max) above for a harder stop.
-	 *
-	 * One exception, not blanket-applied: DOUBLE_CLICK's silent gap
-	 * step is DIV_4, not DIV_8 like its two pulses. Collapsing the gap
-	 * all the way risks the two taps blurring into one continuous
-	 * buzz, which would defeat the entire reason this effect exists
-	 * (the "ti-tick" two-tap feel). Tightened one step from its
-	 * previous DIV_2, not maxed.
-	 */
+
 	effect_0 {
 		/* CLICK -- short, clean single snap. General-purpose (most
 		 * UI touches route here); framework's UDFPS-success routing
