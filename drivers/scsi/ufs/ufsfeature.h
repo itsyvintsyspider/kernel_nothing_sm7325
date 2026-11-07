@@ -38,6 +38,8 @@
 #ifndef _UFSFEATURE_H_
 #define _UFSFEATURE_H_
 
+#include <linux/hrtimer.h>
+#include <linux/workqueue.h>
 #include <scsi/scsi_cmnd.h>
 
 #include "ufs.h"
@@ -45,7 +47,7 @@
 #include "ufshid.h"
 
 /* Version info */
-#define UFSFEATURE_DD_VER			0x010004
+#define UFSFEATURE_DD_VER			0x020001
 #define UFSFEATURE_DD_VER_POST			""
 
 #define UFSF_QUERY_REQ_RETRIES			1
@@ -54,6 +56,28 @@
 #define UFSF_QUERY_DESC_DEVICE_MAX_SIZE		0x5F
 
 #define UFSFEATURE_SELECTOR			0x01
+
+/*
+ * Private copies of ufshcd.c internals. Deliberately NOT named
+ * UFSHCD_STATE_OPERATIONAL / UFSHCD_EH_IN_PROGRESS: this header is included
+ * from ufshcd.h and a macro of that name would break the enum in ufshcd.c.
+ * Values must match the enums at the top of ufshcd.c.
+ */
+#define UFSF_STATE_OPERATIONAL			2
+#define UFSF_EH_IN_PROGRESS			(1 << 0)
+
+/* Attribute idn for Query requests */
+#define QUERY_ATTR_IDN_HID_OPERATION		0x20
+#define QUERY_ATTR_IDN_HID_FRAG_LEVEL		0x21
+#define QUERY_ATTR_IDN_SUP_VENDOR_OPTIONS	0xFF
+
+/* Device descriptor parameter offsets in bytes (guarded: ufs.h may have them) */
+#ifndef DEVICE_DESC_PARAM_EX_FEAT_SUP
+#define DEVICE_DESC_PARAM_EX_FEAT_SUP		0x4F
+#endif
+#ifndef DEVICE_DESC_PARAM_HID_VER
+#define DEVICE_DESC_PARAM_HID_VER		0x59
+#endif
 
 #define INFO_MSG(msg, args...)		pr_info("%s:%d info: " msg "\n", \
 					       __func__, __LINE__, ##args)
@@ -72,6 +96,19 @@
 			msg, ##args);					\
 	} while (0)							\
 
+#if defined(CONFIG_UFS_MANUAL_GC)
+/* SK hynix manual GC (Nothing "nt" sysfs group) */
+struct ufsf_manual_gc {
+	int state;
+	bool hagc_support;
+	bool sysfs_created;
+	struct hrtimer hrtimer;
+	unsigned long delay_ms;
+	struct work_struct hibern8_work;
+	struct workqueue_struct *mgc_workq;
+};
+#endif
+
 struct ufsf_feature {
 	struct ufs_hba *hba;
 	int num_lu;
@@ -82,25 +119,42 @@ struct ufsf_feature {
 	atomic_t hid_state;
 	struct ufshid_dev *hid_dev;
 #endif
+#if defined(CONFIG_UFS_MANUAL_GC)
+	struct ufsf_manual_gc manual_gc;
+#endif
 };
 
 struct ufs_hba;
 struct ufshcd_lrb;
-struct ufs_ioctl_query_data;
 
 void ufsf_device_check(struct ufs_hba *hba);
 int ufsf_query_attr_retry(struct ufs_hba *hba, enum query_opcode opcode,
 			  enum attr_idn idn, u8 idx, u32 *attr_val);
-void ufsf_reset_lu(struct ufsf_feature *ufsf);
+void ufsf_slave_configure(struct ufsf_feature *ufsf, struct scsi_device *sdev);
 void ufsf_reset_host(struct ufsf_feature *ufsf);
 void ufsf_init(struct ufsf_feature *ufsf);
 void ufsf_reset(struct ufsf_feature *ufsf);
 void ufsf_remove(struct ufsf_feature *ufsf);
-void ufsf_set_init_state(struct ufsf_feature *ufsf);
+void ufsf_set_init_state(struct ufs_hba *hba);
 void ufsf_suspend(struct ufsf_feature *ufsf);
 void ufsf_resume(struct ufsf_feature *ufsf);
 void ufsf_on_idle(struct ufsf_feature *ufsf, struct ufshcd_lrb *lrbp);
 
-/* for hid */
-void ufsf_hid_acc_io_stat(struct ufsf_feature *ufsf, struct ufshcd_lrb *lrbp);
+/* mimic of static ufshcd.c helpers (ufsfeature-mimic.c) */
+void ufsf_scsi_unblock_requests(struct ufs_hba *hba);
+void ufsf_scsi_block_requests(struct ufs_hba *hba);
+int ufsf_wait_for_doorbell_clr(struct ufs_hba *hba, u64 wait_timeout_us);
+
+#if defined(CONFIG_UFS_MANUAL_GC)
+/* ufs-manual-gc.c */
+void ufs_manual_gc_init(struct ufs_hba *hba);
+void ufs_manual_gc_sysfs_init(struct ufs_hba *hba);
+void ufs_manual_gc_remove(struct ufs_hba *hba);
+
+/* ufshcd.c helpers exported for manual gc */
+int ufshcd_query_attr_retry(struct ufs_hba *hba, enum query_opcode opcode,
+			    enum attr_idn idn, u8 index, u8 selector,
+			    u32 *attr_val);
+int ufshcd_bkops_ctrl(struct ufs_hba *hba, enum bkops_status status);
+#endif
 #endif /* End of Header */

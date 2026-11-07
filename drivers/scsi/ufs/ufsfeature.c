@@ -38,15 +38,9 @@
 #include "ufsfeature.h"
 #include "ufshcd.h"
 
-static inline bool ufsf_is_valid_lun(int lun)
+void ufsf_slave_configure(struct ufsf_feature *ufsf, struct scsi_device *sdev)
 {
-	return lun < UFS_UPIU_MAX_GENERAL_LUN;
-}
-
-inline void ufsf_slave_configure(struct ufsf_feature *ufsf,
-				 struct scsi_device *sdev)
-{
-	if (ufsf_is_valid_lun(sdev->lun)) {
+	if (sdev->lun < UFS_UPIU_MAX_GENERAL_LUN) {
 		ufsf->sdev_ufs_lu[sdev->lun] = sdev;
 		ufsf->slave_conf_cnt++;
 		INFO_MSG("lun[%d] sdev(%p) q(%p) slave_conf_cnt(%d/%d)",
@@ -54,10 +48,11 @@ inline void ufsf_slave_configure(struct ufsf_feature *ufsf,
 			 ufsf->slave_conf_cnt, ufsf->num_lu);
 	}
 }
+
 int ufsf_query_attr_retry(struct ufs_hba *hba, enum query_opcode opcode,
 			  enum attr_idn idn, u8 idx, u32 *attr_val)
 {
-	int ret;
+	int ret = 0;
 	int retries;
 
 	for (retries = 0; retries < UFSF_QUERY_REQ_RETRIES; retries++) {
@@ -130,8 +125,7 @@ static int ufsf_read_dev_desc(struct ufsf_feature *ufsf, u8 selector)
 void ufsf_device_check(struct ufs_hba *hba)
 {
 	struct ufsf_feature *ufsf = &hba->ufsf;
-	int ret;
-	u32 status;
+	u32 status = 0;
 
 	ufsf->hba = hba;
 
@@ -140,12 +134,11 @@ void ufsf_device_check(struct ufs_hba *hba)
 	INFO_MSG("UFS FEATURE SELECTOR Dev %d - D/D %d", status,
 		  UFSFEATURE_SELECTOR);
 
-	ret = ufsf_read_dev_desc(ufsf, UFSFEATURE_SELECTOR);
-	if (ret)
-		return;
+	ufsf_read_dev_desc(ufsf, UFSFEATURE_SELECTOR);
 }
 
-inline void ufsf_reset_host(struct ufsf_feature *ufsf)
+/* called from ufshcd_host_reset_and_restore() */
+void ufsf_reset_host(struct ufsf_feature *ufsf)
 {
 #if defined(CONFIG_UFSHID)
 	INFO_MSG("run reset_host.. hid_state(%d) -> HID_RESET",
@@ -155,15 +148,19 @@ inline void ufsf_reset_host(struct ufsf_feature *ufsf)
 #endif
 }
 
-inline void ufsf_init(struct ufsf_feature *ufsf)
+void ufsf_init(struct ufsf_feature *ufsf)
 {
 #if defined(CONFIG_UFSHID)
 	if (ufshid_get_state(ufsf) == HID_NEED_INIT)
 		ufshid_init(ufsf);
 #endif
+#if defined(CONFIG_UFS_MANUAL_GC)
+	ufs_manual_gc_sysfs_init(ufsf->hba);
+#endif
 }
 
-inline void ufsf_reset(struct ufsf_feature *ufsf)
+/* called at the end of ufshcd_probe_hba(), i.e. after reset+restore */
+void ufsf_reset(struct ufsf_feature *ufsf)
 {
 #if defined(CONFIG_UFSHID)
 	if (ufshid_get_state(ufsf) == HID_RESET)
@@ -171,22 +168,32 @@ inline void ufsf_reset(struct ufsf_feature *ufsf)
 #endif
 }
 
-inline void ufsf_remove(struct ufsf_feature *ufsf)
+void ufsf_remove(struct ufsf_feature *ufsf)
 {
 #if defined(CONFIG_UFSHID)
 	if (ufshid_get_state(ufsf) == HID_PRESENT)
 		ufshid_remove(ufsf);
 #endif
-}
-
-inline void ufsf_set_init_state(struct ufsf_feature *ufsf)
-{
-#if defined(CONFIG_UFSHID)
-	ufshid_set_state(ufsf, HID_NEED_INIT);
+#if defined(CONFIG_UFS_MANUAL_GC)
+	ufs_manual_gc_remove(ufsf->hba);
 #endif
 }
 
-inline void ufsf_suspend(struct ufsf_feature *ufsf)
+void ufsf_set_init_state(struct ufs_hba *hba)
+{
+	struct ufsf_feature *ufsf = &hba->ufsf;
+
+	ufsf->hba = hba;
+	ufsf->slave_conf_cnt = 0;
+#if defined(CONFIG_UFSHID)
+	ufshid_set_state(ufsf, HID_NEED_INIT);
+#endif
+#if defined(CONFIG_UFS_MANUAL_GC)
+	ufs_manual_gc_init(hba);
+#endif
+}
+
+void ufsf_suspend(struct ufsf_feature *ufsf)
 {
 #if defined(CONFIG_UFSHID)
 	if (ufshid_get_state(ufsf) == HID_PRESENT)
@@ -194,7 +201,7 @@ inline void ufsf_suspend(struct ufsf_feature *ufsf)
 #endif
 }
 
-inline void ufsf_resume(struct ufsf_feature *ufsf)
+void ufsf_resume(struct ufsf_feature *ufsf)
 {
 #if defined(CONFIG_UFSHID)
 	if (ufshid_get_state(ufsf) == HID_SUSPEND)
@@ -202,7 +209,7 @@ inline void ufsf_resume(struct ufsf_feature *ufsf)
 #endif
 }
 
-inline void ufsf_on_idle(struct ufsf_feature *ufsf, struct ufshcd_lrb *lrbp)
+void ufsf_on_idle(struct ufsf_feature *ufsf, struct ufshcd_lrb *lrbp)
 {
 	struct ufs_hba *hba = ufsf->hba;
 

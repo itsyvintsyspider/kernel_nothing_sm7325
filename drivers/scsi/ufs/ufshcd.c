@@ -3015,7 +3015,7 @@ static inline void ufshcd_init_query(struct ufs_hba *hba,
 	(*request)->upiu_req.selector = selector;
 }
 
-#ifdef CONFIG_SCSI_SKHPB
+#if defined(CONFIG_SCSI_SKHPB) || defined(CONFIG_UFS_MANUAL_GC)
 int ufshcd_query_flag_retry(struct ufs_hba *hba,
 	enum query_opcode opcode, enum flag_idn idn, u8 index, bool *flag_res)
 #else
@@ -3190,7 +3190,11 @@ EXPORT_SYMBOL_GPL(ufshcd_query_attr);
  *
  * Returns 0 for success, non-zero in case of failure
 */
+#if defined(CONFIG_UFS_MANUAL_GC)
+int ufshcd_query_attr_retry(struct ufs_hba *hba,
+#else
 static int ufshcd_query_attr_retry(struct ufs_hba *hba,
+#endif
 	enum query_opcode opcode, enum attr_idn idn, u8 index, u8 selector,
 	u32 *attr_val)
 {
@@ -5021,6 +5025,9 @@ static int ufshcd_slave_configure(struct scsi_device *sdev)
 		if (sdev->lun < UFS_UPIU_MAX_GENERAL_LUN)
 			hba->sdev_ufs_lu[sdev->lun] = sdev;
 #endif
+#if defined(CONFIG_UFSFEATURE)
+	ufsf_slave_configure(&hba->ufsf, sdev);
+#endif
 	return 0;
 }
 
@@ -5512,7 +5519,11 @@ static inline int ufshcd_get_bkops_status(struct ufs_hba *hba, u32 *status)
  * to know whether auto bkops is enabled or disabled after this function
  * returns control to it.
  */
+#if defined(CONFIG_UFS_MANUAL_GC)
+int ufshcd_bkops_ctrl(struct ufs_hba *hba,
+#else
 static int ufshcd_bkops_ctrl(struct ufs_hba *hba,
+#endif
 			     enum bkops_status status)
 {
 	int err;
@@ -9705,7 +9716,7 @@ int ufshcd_init(struct ufs_hba *hba, void __iomem *mmio_base, unsigned int irq)
 	ufshcd_set_ufs_dev_active(hba);
 
 #if defined(CONFIG_UFSFEATURE)
-	ufsf_set_init_state(&hba->ufsf);
+	ufsf_set_init_state(hba);
 #endif
 #ifdef CONFIG_SCSI_SKHPB
 	ufshcd_init_hpb(hba);

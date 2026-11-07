@@ -215,6 +215,14 @@ config UFSHID
 	help
 	UFS HID Feature Enable
 
+config UFS_MANUAL_GC
+	bool "UFS manual GC (SK hynix, Nothing 'nt' sysfs group)"
+	depends on SCSI_UFSHCD && UFSFEATURE
+	default y
+	help
+	Exposes nt/manual_gc and nt/manual_gc_hold under the UFS host
+	device. Only created when the attached device is SK hynix.
+
 config UFSHID_POC
 	bool "UFSHID_POC test"
 	depends on SCSI_UFSHCD && UFSFEATURE && UFSHID

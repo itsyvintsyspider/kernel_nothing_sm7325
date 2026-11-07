@@ -35,7 +35,9 @@
  * license terms, and distributes only under these terms.
  */
 
+#include <linux/delay.h>
 #include "ufshcd.h"
+#include "ufsfeature.h"
 #include "ufshid.h"
 
 static int ufshid_create_sysfs(struct ufshid_dev *hid);
@@ -46,12 +48,12 @@ static inline int ufshid_schedule_delayed_work(struct delayed_work *work,
 	return queue_delayed_work(system_freezable_wq, work, delay);
 }
 
-inline int ufshid_get_state(struct ufsf_feature *ufsf)
+int ufshid_get_state(struct ufsf_feature *ufsf)
 {
 	return atomic_read(&ufsf->hid_state);
 }
 
-inline void ufshid_set_state(struct ufsf_feature *ufsf, int state)
+void ufshid_set_state(struct ufsf_feature *ufsf, int state)
 {
 	atomic_set(&ufsf->hid_state, state);
 }
@@ -134,7 +136,9 @@ void ufshid_get_dev_info(struct ufsf_feature *ufsf, u8 *desc_buf)
 {
 	int ret = 0, spec_version;
 
-	ufsf->hid_dev = NULL;
+	/* already probed (device_check can run again on rescan) */
+	if (ufsf->hid_dev)
+		return;
 
 	if (!(get_unaligned_be32(desc_buf + DEVICE_DESC_PARAM_EX_FEAT_SUP) &
 	      UFS_FEATURE_SUPPORT_HID_BIT)) {
@@ -143,8 +147,7 @@ void ufshid_get_dev_info(struct ufsf_feature *ufsf, u8 *desc_buf)
 	}
 
 	INFO_MSG("bUFSExFeaturesSupport: HID support");
-	spec_version =
-		get_unaligned_be16(desc_buf + DEVICE_DESC_PARAM_HID_VER);
+	spec_version = get_unaligned_be16(desc_buf + DEVICE_DESC_PARAM_HID_VER);
 	ret = ufshid_version_check(spec_version);
 	if (ret)
 		goto err_out;
@@ -221,10 +224,9 @@ static void ufshid_auto_hibern8_enable(struct ufshid_dev *hid,
 
 	pm_runtime_get_sync(hba->dev);
 	ufshcd_hold(hba, false);
-	down_write(&hba->clk_scaling_lock);
-	ufshcd_scsi_block_requests(hba);
+	ufsf_scsi_block_requests(hba);
 	/* wait for all the outstanding requests to finish */
-	ufshcd_wait_for_doorbell_clr(hba, U64_MAX);
+	ufsf_wait_for_doorbell_clr(hba, U64_MAX);
 	spin_lock_irqsave(hba->host->host_lock, flags);
 
 	reg = ufshcd_readl(hba, REG_AUTO_HIBERNATE_IDLE_TIMER);
@@ -260,8 +262,7 @@ static void ufshid_auto_hibern8_enable(struct ufshid_dev *hid,
 	}
 
 	spin_unlock_irqrestore(hba->host->host_lock, flags);
-	ufshcd_scsi_unblock_requests(hba);
-	up_write(&hba->clk_scaling_lock);
+	ufsf_scsi_unblock_requests(hba);
 	ufshcd_release(hba);
 	pm_runtime_put_noidle(hba->dev);
 }
@@ -397,9 +398,6 @@ static void ufshid_allow_enter_suspend(struct ufshid_dev *hid)
 }
 
 /*
- *  The method using HID for each vendor may be different.
- *  So, the functions were exposed to direct control in other kernel processes.
- *
  *  Lock status: hid->sysfs_lock was held when called.
  */
 int ufshid_trigger_off(struct ufshid_dev *hid) __must_hold(&hid->sysfs_lock)
@@ -504,6 +502,7 @@ void ufshid_init(struct ufsf_feature *ufsf)
 	if (ret) {
 		ERR_MSG("sysfs init fail. so hid driver disabled");
 		kfree(hid);
+		ufsf->hid_dev = NULL;
 		ufshid_set_state(ufsf, HID_FAILED);
 		return;
 	}
@@ -576,6 +575,7 @@ void ufshid_remove(struct ufsf_feature *ufsf)
 	cancel_delayed_work_sync(&hid->hid_trigger_work);
 
 	kfree(hid);
+	ufsf->hid_dev = NULL;
 
 	INFO_MSG("end HID release");
 }
@@ -627,7 +627,7 @@ void ufshid_on_idle(struct ufsf_feature *ufsf)
 		cancel_delayed_work(&hid->hid_trigger_work);
 
 	ufshid_schedule_delayed_work(&hid->hid_trigger_work,
-				     hid->hid_on_idle_delay);
+				     msecs_to_jiffies(hid->hid_on_idle_delay));
 }
 
 /* sysfs function */
@@ -668,7 +668,7 @@ static ssize_t ufshid_sysfs_store_trigger(struct ufshid_dev *hid,
 	ret = val ? ufshid_trigger_on(hid) : ufshid_trigger_off(hid);
 
 	if (ret) {
-		INFO_MSG("Changing trigger val %u is fail (%ld)", val, ret);
+		INFO_MSG("Changing trigger val %u is fail (%zd)", val, ret);
 		return ret;
 	}
 

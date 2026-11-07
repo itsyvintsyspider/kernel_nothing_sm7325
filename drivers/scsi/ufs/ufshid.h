@@ -39,7 +39,9 @@
 #define _UFSHID_H_
 
 #include <linux/blktrace_api.h>
-#include <asm-generic/unaligned.h>
+#include <asm/unaligned.h>
+
+struct ufsf_feature;
 
 #define UFSHID_VER					0x0101
 #define UFSHID_DD_VER					0x010205
@@ -56,11 +58,11 @@
 #define HID_ON_IDLE_DELAY_MS_MAX		10000
 
 #define HID_FRAG_LEVEL_MASK		0xF
-#define HID_GET_FRAG_LEVEL(val)		(val & HID_FRAG_LEVEL_MASK)
+#define HID_GET_FRAG_LEVEL(val)		((val) & HID_FRAG_LEVEL_MASK)
 #define HID_FRAG_UPDATE_STAT_SHIFT	30
 #define HID_EXECUTE_REQ_STAT_SHIFT	31
-#define HID_FRAG_UPDATE_STAT(val)	((val >> HID_FRAG_UPDATE_STAT_SHIFT) & 0x1)
-#define HID_EXECUTE_REQ_STAT(val)	((val >> HID_EXECUTE_REQ_STAT_SHIFT) & 0x1)
+#define HID_FRAG_UPDATE_STAT(val)	(((val) >> HID_FRAG_UPDATE_STAT_SHIFT) & 0x1)
+#define HID_EXECUTE_REQ_STAT(val)	(((val) >> HID_EXECUTE_REQ_STAT_SHIFT) & 0x1)
 
 #define HID_DEBUG(hid, msg, args...)					\
 	do { if (hid->hid_debug)					\
@@ -133,7 +135,6 @@ int ufshid_trigger_off(struct ufshid_dev *hid);
 int ufshid_get_state(struct ufsf_feature *ufsf);
 void ufshid_set_state(struct ufsf_feature *ufsf, int state);
 void ufshid_get_dev_info(struct ufsf_feature *ufsf, u8 *desc_buf);
-void ufshid_set_init_state(struct ufsf_feature *ufsf);
 void ufshid_init(struct ufsf_feature *ufsf);
 void ufshid_reset(struct ufsf_feature *ufsf);
 void ufshid_reset_host(struct ufsf_feature *ufsf);
