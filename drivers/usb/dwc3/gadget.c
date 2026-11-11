@@ -2386,6 +2386,20 @@ done:
 
 #define MIN_RUN_STOP_DELAY_MS 50
 
+/*
+ * dwc3_gadget_run_stop() is reached with dwc->lock held from pullup and
+ * vbus_session.  Sleeping there raises "scheduling while atomic", and the
+ * scheduler's repair of the preempt count makes the later spin_unlock
+ * underflow it, which turns a user fault in init into a kernel panic.
+ */
+static void dwc3_gadget_halt_poll_delay(void)
+{
+	if (in_atomic() || irqs_disabled())
+		mdelay(1);
+	else
+		usleep_range(1000, 2000);
+}
+
 static int dwc3_gadget_run_stop(struct dwc3 *dwc, int is_on, int suspend)
 {
 	u32			reg, reg1;
@@ -2462,7 +2476,7 @@ static int dwc3_gadget_run_stop(struct dwc3 *dwc, int is_on, int suspend)
 	}
 
 	do {
-		usleep_range(1000, 2000);
+		dwc3_gadget_halt_poll_delay();
 		reg = dwc3_readl(dwc->regs, DWC3_DSTS);
 		reg &= DWC3_DSTS_DEVCTRLHLT;
 	} while (--timeout && !(!is_on ^ !reg));
