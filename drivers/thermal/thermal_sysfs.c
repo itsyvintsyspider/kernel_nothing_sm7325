@@ -1155,12 +1155,21 @@ static void cooling_device_stats_setup(struct thermal_cooling_device *cdev)
 	const struct attribute_group *stats_attr_group = NULL;
 	struct cooling_dev_stats *stats;
 	unsigned long states;
-	int var;
+	size_t var;
 
 	if (cdev->ops->get_max_state(cdev, &states))
 		goto out;
 
 	states++; /* Total number of states is highest state + 1 */
+
+	/*
+	 * The transition table is states * states entries. A cooling device
+	 * with one state per brightness step (e.g. a 4096 level backlight)
+	 * would need tens of megabytes, which kzalloc() can never satisfy and
+	 * which only produces an allocation warning. Skip statistics for it.
+	 */
+	if (states > 1000)
+		goto out;
 
 	var = sizeof(*stats);
 	var += sizeof(*stats->time_in_state) * states;
