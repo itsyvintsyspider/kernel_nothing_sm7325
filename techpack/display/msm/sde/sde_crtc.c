@@ -4890,6 +4890,93 @@ static int _sde_crtc_check_zpos(struct drm_crtc_state *state,
 	return rc;
 }
 
+/* remove the finger-HBM mask layer left in this state by the previous commit */
+static void _sde_crtc_fod_strip(struct sde_crtc_state *cstate)
+{
+	u32 n = cstate->num_dim_layers;
+	u32 k = cstate->fod_added;
+
+	cstate->fod_added = 0;
+	if (!k || k > n || k > ARRAY_SIZE(cstate->fod_layer) ||
+			memcmp(&cstate->dim_layer[n - k], cstate->fod_layer,
+				k * sizeof(cstate->fod_layer[0])))
+		return;
+	memset(&cstate->dim_layer[n - k], 0, k * sizeof(cstate->dim_layer[0]));
+	cstate->num_dim_layers = n - k;
+	set_bit(SDE_CRTC_DIRTY_DIM_LAYERS, cstate->dirty);
+}
+
+/*
+ * While finger HBM is lit, darken everything but the sensor area: one EXCLUSIVE
+ * black dim layer (dims outside its rect) on the first blend stage above all planes.
+ */
+static void _sde_crtc_fod_add(struct sde_crtc_state *cstate,
+		struct sde_kms *kms, struct drm_display_mode *mode,
+		struct plane_state *pstates, int cnt)
+{
+	struct sde_hw_dim_layer l[2];
+	u32 x, y, w, h, alpha, halo, n = 1, i;
+	int stage = SDE_STAGE_0 - 1;
+
+	if (!sde_fod_mask_get(&x, &y, &w, &h, &alpha, &halo))
+		return;
+
+	/* userspace (HWC) may have dim layers of its own: go above them too */
+	for (i = 0; i < cnt; i++)
+		stage = max_t(int, stage, pstates[i].sde_pstate->stage);
+	for (i = 0; i < cstate->num_dim_layers; i++)
+		stage = max_t(int, stage, cstate->dim_layer[i].stage);
+	stage++;
+
+	if (cstate->num_dim_layers >= SDE_MAX_DIM_LAYERS || !cstate->base.active ||
+			stage > kms->catalog->max_mixer_blendstages ||
+			stage >= SDE_STAGE_MAX || !w || !h ||
+			x + w > mode->hdisplay || y + h > mode->vdisplay) {
+		SDE_ERROR("finger mask not possible: dims %d stage %d rect %u,%u %ux%u\n",
+				cstate->num_dim_layers, stage, x, y, w, h);
+		sde_fod_mask_done(false);
+		return;
+	}
+
+	memset(l, 0, sizeof(l));
+	l[0].flags = SDE_DRM_DIM_LAYER_EXCLUSIVE;
+	l[0].stage = stage;
+	l[0].rect.x = x;
+	l[0].rect.y = y;
+	l[0].rect.w = w;
+	l[0].rect.h = h;
+	l[0].color_fill.color_3 = alpha;	/* black, alpha = share of black */
+
+	/*
+	 * Soft edge: two stacked EXCLUSIVE layers, each keeping sqrt of the wanted
+	 * brightness outside its rect, so the band between them is half-dimmed.
+	 * The wide layer goes on the lower stage.
+	 */
+	if (halo && cstate->num_dim_layers + 2 <= SDE_MAX_DIM_LAYERS &&
+			stage + 1 <= kms->catalog->max_mixer_blendstages &&
+			stage + 1 < SDE_STAGE_MAX) {
+		u32 half = 255 - int_sqrt((255 - alpha) * 255);
+		u32 x2 = x > halo ? x - halo : 0;
+		u32 y2 = y > halo ? y - halo : 0;
+
+		l[1] = l[0];
+		l[1].stage = stage + 1;
+		l[0].rect.x = x2;
+		l[0].rect.y = y2;
+		l[0].rect.w = min(x + w + halo, (u32)mode->hdisplay) - x2;
+		l[0].rect.h = min(y + h + halo, (u32)mode->vdisplay) - y2;
+		l[0].color_fill.color_3 = half;
+		l[1].color_fill.color_3 = half;
+		n = 2;
+	}
+	for (i = 0; i < n; i++)
+		cstate->dim_layer[cstate->num_dim_layers++] = l[i];
+	memcpy(cstate->fod_layer, l, sizeof(l));
+	cstate->fod_added = n;
+	set_bit(SDE_CRTC_DIRTY_DIM_LAYERS, cstate->dirty);
+	sde_fod_mask_done(true);
+}
+
 static int _sde_crtc_atomic_check_pstates(struct drm_crtc *crtc,
 		struct drm_crtc_state *state,
 		struct plane_state *pstates,
@@ -4913,6 +5000,8 @@ static int _sde_crtc_atomic_check_pstates(struct drm_crtc *crtc,
 	cstate = to_sde_crtc_state(state);
 	mode = &state->adjusted_mode;
 
+	_sde_crtc_fod_strip(cstate);
+
 	/* get plane state for all drm planes associated with crtc state */
 	rc = _sde_crtc_check_get_pstates(crtc, state, mode, pstates,
 			plane, multirect_plane, &cnt);
@@ -4923,6 +5012,8 @@ static int _sde_crtc_atomic_check_pstates(struct drm_crtc *crtc,
 	rc = _sde_crtc_check_zpos(state, sde_crtc, pstates, cstate, mode, cnt);
 	if (rc)
 		return rc;
+
+	_sde_crtc_fod_add(cstate, kms, mode, pstates, cnt);
 
 	rc = _sde_crtc_check_secure_state(crtc, state, pstates, cnt);
 	if (rc)

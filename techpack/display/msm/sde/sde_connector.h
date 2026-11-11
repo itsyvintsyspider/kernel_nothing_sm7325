@@ -544,6 +544,9 @@ struct sde_connector {
 
 	bool fingerlayer_dirty;
 	u32 finger_flag;
+	bool finger_hbm_expired;
+	struct mutex finger_hbm_lock;
+	struct delayed_work finger_hbm_timeout_work;
 	struct work_struct set_brightness_work;
 
 	u32 hdr_eotf;
@@ -826,6 +829,10 @@ int sde_connector_get_info(struct drm_connector *connector,
  * Returns: Zero on success
  */
 int sde_connector_clk_ctrl(struct drm_connector *connector, bool enable);
+
+/* finger-HBM area mask (sde_connector.c), used by sde_crtc atomic check */
+bool sde_fod_mask_get(u32 *x, u32 *y, u32 *w, u32 *h, u32 *alpha, u32 *halo);
+void sde_fod_mask_done(bool ok);
 
 /**
  * sde_connector_get_dpms - query dpms setting

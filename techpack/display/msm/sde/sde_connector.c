@@ -14,6 +14,7 @@
 #include "msm_cooling_device.h"
 #include <linux/backlight.h>
 #include <linux/string.h>
+#include <linux/input.h>
 #include "dsi_drm.h"
 #include "dsi_display.h"
 #include "sde_crtc.h"
@@ -28,6 +29,94 @@
 int finger_hbm_flag = 0;
 int hbm_mode_flag = 0;
 bool update_hbm_brightness = false;
+
+/*
+ * Finger-HBM is asserted by userspace through the finger_flag property and was
+ * only ever dropped by userspace writing 0 again.  If the UDFPS overlay keeps
+ * the flag set (e.g. the icon shown on the lock screen) the panel stays in HBM
+ * indefinitely.  Drop it after this many ms; 0 disables the limit.
+ */
+static unsigned int finger_hbm_timeout_ms = 2500;
+module_param(finger_hbm_timeout_ms, uint, 0644);
+MODULE_PARM_DESC(finger_hbm_timeout_ms,
+	"max time finger HBM stays on without userspace clearing it, 0 = no limit");
+
+/*
+ * finger_flag only says the UDFPS overlay is armed: userspace sets it as soon as
+ * the lock screen is shown, long before a finger arrives.  With the gate on, the
+ * panel is lit only while a finger really touches the sensor zone (reported by
+ * the touchscreen input handler below) and released when it lifts.  0 restores
+ * "HBM as soon as finger_flag is set".  Zone = circle (x, y, r) in touch pixels.
+ */
+static unsigned int finger_hbm_press_gate = 1;
+module_param(finger_hbm_press_gate, uint, 0644);
+MODULE_PARM_DESC(finger_hbm_press_gate, "light the panel only while the sensor zone is touched");
+static int finger_hbm_x = 540;
+static int finger_hbm_y = 2160;
+static int finger_hbm_r = 150;
+module_param(finger_hbm_x, int, 0644);
+module_param(finger_hbm_y, int, 0644);
+module_param(finger_hbm_r, int, 0644);
+MODULE_PARM_DESC(finger_hbm_x, "sensor zone centre x (touch pixels)");
+MODULE_PARM_DESC(finger_hbm_y, "sensor zone centre y (touch pixels)");
+MODULE_PARM_DESC(finger_hbm_r, "sensor zone radius (touch pixels)");
+
+/*
+ * The panel only has a global HBM (DCS backlight level).  To light just the sensor
+ * area, the display pipe darkens everything outside a rectangle around the sensor
+ * with a black dim layer while HBM is on (see _sde_crtc_fod_add in sde_crtc.c).
+ * The layer must be on screen before the backlight goes up, so the press worker
+ * commits it first.  If that fails the panel falls back to plain full-screen HBM.
+ */
+static unsigned int finger_hbm_mask = 1;
+module_param(finger_hbm_mask, uint, 0644);
+MODULE_PARM_DESC(finger_hbm_mask, "confine the HBM light to the sensor area with a dim layer");
+static int finger_hbm_mask_x = 542;
+static int finger_hbm_mask_y = 2163;
+static int finger_hbm_mask_r = 68;
+module_param(finger_hbm_mask_x, int, 0644);
+module_param(finger_hbm_mask_y, int, 0644);
+module_param(finger_hbm_mask_r, int, 0644);
+MODULE_PARM_DESC(finger_hbm_mask_x, "lit area centre x (display pixels)");
+MODULE_PARM_DESC(finger_hbm_mask_y, "lit area centre y (display pixels)");
+MODULE_PARM_DESC(finger_hbm_mask_r, "lit area half size (display pixels), square");
+static unsigned int finger_hbm_mask_halo = 24;
+module_param(finger_hbm_mask_halo, uint, 0644);
+MODULE_PARM_DESC(finger_hbm_mask_halo, "width of a half-dimmed step around the lit area, 0 = hard edge");
+static unsigned int finger_hbm_dim_alpha;
+module_param(finger_hbm_dim_alpha, uint, 0644);
+MODULE_PARM_DESC(finger_hbm_dim_alpha, "dim layer alpha 1-255 outside the area, 0 = derive from the backlight ratio");
+static unsigned int finger_hbm_dim_trim = 100;
+module_param(finger_hbm_dim_trim, uint, 0644);
+MODULE_PARM_DESC(finger_hbm_dim_trim, "percent scale of the derived brightness kept outside the area");
+
+static bool fod_mask_req;	/* sde_crtc_atomic_check adds the dim layer while set */
+static bool fod_mask_ok;	/* last atomic check found room for it */
+static bool fod_hbm_allowed;	/* mask is on screen (or given up): HBM may be lit */
+static u32 fod_mask_alpha;
+
+/* called by sde_crtc.c from atomic check; true = a mask is wanted */
+bool sde_fod_mask_get(u32 *x, u32 *y, u32 *w, u32 *h, u32 *alpha, u32 *halo)
+{
+	int r = finger_hbm_mask_r, x0, y0;
+
+	if (!READ_ONCE(fod_mask_req) || r <= 0)
+		return false;
+	x0 = max(finger_hbm_mask_x - r, 0);
+	y0 = max(finger_hbm_mask_y - r, 0);
+	*x = x0;
+	*y = y0;
+	*w = finger_hbm_mask_x + r - x0;
+	*h = finger_hbm_mask_y + r - y0;
+	*alpha = READ_ONCE(fod_mask_alpha);
+	*halo = finger_hbm_mask_halo;
+	return true;
+}
+
+void sde_fod_mask_done(bool ok)
+{
+	WRITE_ONCE(fod_mask_ok, ok);
+}
 
 /* Autorefresh will occur after FRAME_CNT frames. Large values are unlikely */
 #define AUTOREFRESH_MAX_FRAME_CNT 6
@@ -135,7 +224,7 @@ static int sde_backlight_device_update_status(struct backlight_device *bd)
 
 	/*if enable hbm_mode, set brightness to HBM brightness*/
 	if (finger_hbm_flag || hbm_mode_flag) {
-		SDE_ERROR("update hbm brightness\n");
+		SDE_DEBUG("update hbm brightness\n");
 		bl_lvl = display->panel->bl_config.bl_hbm_level;
 	}
 
@@ -828,9 +917,34 @@ static int _sde_connector_update_dirty_properties(
 	return 0;
 }
 
+static bool finger_pressed;
+static atomic_t fod_touch_count = ATOMIC_INIT(0);
+
+static bool _fod_hbm_wish(struct sde_connector *c_conn)
+{
+	if (!c_conn->finger_flag || c_conn->finger_hbm_expired)
+		return false;
+	/* without a connected touchscreen there is nothing to gate on */
+	if (!finger_hbm_press_gate || !atomic_read(&fod_touch_count))
+		return true;
+	return READ_ONCE(finger_pressed);
+}
+
+static bool _sde_connector_finger_hbm_wanted(struct sde_connector *c_conn)
+{
+	/* with the mask enabled, the worker lights the panel once the mask is shown */
+	if (finger_hbm_mask && !READ_ONCE(fod_hbm_allowed))
+		return false;
+	return _fod_hbm_wish(c_conn);
+}
+
+static struct work_struct finger_press_work;
+
 static int _sde_connector_update_finger_hbm_status(
 				struct drm_connector *connector)
 {
+	bool want;
+
 	struct sde_connector *c_conn;
 	struct sde_connector_state *c_state;
 	struct dsi_display * display;
@@ -850,7 +964,8 @@ static int _sde_connector_update_finger_hbm_status(
 		return -EINVAL;
 	}
 
-	if ((!c_conn->fingerlayer_dirty) && (finger_hbm_flag == c_conn->finger_flag)) {
+	want = _sde_connector_finger_hbm_wanted(c_conn);
+	if ((!c_conn->fingerlayer_dirty) && (finger_hbm_flag == want)) {
 		return 0;
 	}
 
@@ -859,10 +974,16 @@ static int _sde_connector_update_finger_hbm_status(
 		return 0;
 	}
 
+	mutex_lock(&c_conn->finger_hbm_lock);
 	SDE_ATRACE_BEGIN("_sde_connector_update_finger_hbm_statuss");
-	finger_hbm_flag = c_conn->finger_flag;
+	/* re-evaluate under the lock: a press/release may have been handled meanwhile */
+	want = _sde_connector_finger_hbm_wanted(c_conn);
+	finger_hbm_flag = want;
 	if (finger_hbm_flag) {
-		SDE_ERROR("open hbm");
+		SDE_DEBUG("open hbm");
+		if (finger_hbm_timeout_ms)
+			mod_delayed_work(system_wq, &c_conn->finger_hbm_timeout_work,
+					msecs_to_jiffies(finger_hbm_timeout_ms));
 		if ((c_conn->lp_mode == SDE_MODE_DPMS_LP1) ||
 			(c_conn->lp_mode == SDE_MODE_DPMS_LP2)) {
 			mutex_lock(&c_conn->lock);
@@ -876,7 +997,8 @@ static int _sde_connector_update_finger_hbm_status(
 		/*wait for VBLANK */
 		sde_encoder_wait_for_event(c_conn->encoder, MSM_ENC_VBLANK);
 	} else {
-		SDE_ERROR("close hbm");
+		SDE_DEBUG("close hbm");
+		cancel_delayed_work(&c_conn->finger_hbm_timeout_work);
 		update_hbm_brightness = true;
 		sde_backlight_device_update_status(c_conn->bl_device);
 		update_hbm_brightness = false;
@@ -893,7 +1015,301 @@ static int _sde_connector_update_finger_hbm_status(
 
 	c_conn->fingerlayer_dirty = false;
 	SDE_ATRACE_END("_sde_connector_update_finger_hbm_statuss");
+	mutex_unlock(&c_conn->finger_hbm_lock);
 	return 0;
+}
+
+static void _sde_connector_finger_hbm_timeout_work(struct work_struct *work)
+{
+	struct sde_connector *c_conn = container_of(to_delayed_work(work),
+			struct sde_connector, finger_hbm_timeout_work);
+
+	if (!finger_hbm_flag)
+		return;
+
+	SDE_INFO("finger hbm on for %ums, dropping it\n", finger_hbm_timeout_ms);
+	c_conn->finger_hbm_expired = true;	/* until the next press / flag toggle */
+	c_conn->fingerlayer_dirty = true;
+	queue_work(system_highpri_wq, &finger_press_work);
+}
+
+/*
+ * Touchscreen press tracking.  The handler only records whether a finger is in
+ * the sensor zone; applying the backlight can sleep, so a work item does it.
+ */
+#define FOD_MAX_SLOTS 10
+
+struct fod_touch {
+	struct input_handle handle;
+	int slot;
+	struct {
+		int x, y;
+		bool down;
+	} s[FOD_MAX_SLOTS];
+};
+
+static DEFINE_MUTEX(finger_conn_lock);
+static struct sde_connector *finger_conn;
+
+/* force one atomic commit so that sde_crtc_atomic_check adds/removes the mask layer */
+static int _fod_mask_commit(struct sde_connector *c_conn)
+{
+	struct drm_connector *conn = &c_conn->base;
+	struct drm_device *dev = conn->dev;
+	struct drm_modeset_acquire_ctx ctx;
+	struct drm_atomic_state *st;
+	struct drm_crtc *crtc;
+	struct drm_crtc_state *cs;
+	int ret;
+
+	drm_modeset_acquire_init(&ctx, 0);
+	st = drm_atomic_state_alloc(dev);
+	if (!st) {
+		ret = -ENOMEM;
+		goto fini;
+	}
+	st->acquire_ctx = &ctx;
+retry:
+	ret = drm_modeset_lock(&dev->mode_config.connection_mutex, &ctx);
+	if (ret)
+		goto fail;
+	crtc = conn->state ? conn->state->crtc : NULL;
+	if (!crtc) {
+		ret = -ENODEV;
+		goto out;
+	}
+	cs = drm_atomic_get_crtc_state(st, crtc);
+	if (IS_ERR(cs)) {
+		ret = PTR_ERR(cs);
+		goto fail;
+	}
+	if (!cs->active) {
+		ret = -ENODEV;
+		goto out;
+	}
+	ret = drm_atomic_add_affected_connectors(st, crtc);
+	if (!ret)
+		ret = drm_atomic_add_affected_planes(st, crtc);
+	if (!ret)
+		ret = drm_atomic_commit(st);
+fail:
+	if (ret == -EDEADLK) {
+		drm_atomic_state_clear(st);
+		drm_modeset_backoff(&ctx);
+		goto retry;
+	}
+out:
+	drm_atomic_state_put(st);
+fini:
+	drm_modeset_drop_locks(&ctx);
+	drm_modeset_acquire_fini(&ctx);
+	return ret;
+}
+
+/* dim layer alpha that makes the area outside the mask look like the normal backlight */
+static u32 _fod_mask_alpha(struct sde_connector *c_conn)
+{
+	struct dsi_display *display = c_conn->display;
+	struct backlight_device *bd = c_conn->bl_device;
+	u32 hbm, norm, k;
+
+	if (finger_hbm_dim_alpha)
+		return min(finger_hbm_dim_alpha, 255u);
+	if (!display || !display->panel || !bd)
+		return 200;
+	hbm = display->panel->bl_config.bl_hbm_level;
+	norm = mult_frac(min_t(u32, bd->props.brightness,
+				display->panel->bl_config.brightness_max_level),
+			display->panel->bl_config.bl_max_level,
+			display->panel->bl_config.brightness_max_level);
+	if (!hbm)
+		return 200;
+	norm = clamp(norm, 1u, hbm);
+	/* backlight ratio -> code value ratio, roughly sqrt (panel gamma ~2.2), Q10 */
+	k = int_sqrt((u64)norm * 1024 * 1024 / hbm);
+	k = k * min(finger_hbm_dim_trim, 100u) / 100;
+	return 255 - min(255u, k * 255 / 1024);
+}
+
+/*
+ * Bring panel state in line with what is wanted.  Order matters: the mask goes on
+ * screen before the backlight goes up, and the backlight comes down before the
+ * mask is removed, so there is never a full-screen bright frame.
+ */
+static void _fod_press_work(struct work_struct *work)
+{
+	struct sde_connector *c;
+	bool wish;
+	int ret;
+
+	mutex_lock(&finger_conn_lock);
+	c = finger_conn;
+	if (!c)
+		goto unlock;
+	if (READ_ONCE(finger_pressed))
+		c->finger_hbm_expired = false;
+	c->fingerlayer_dirty = true;
+	wish = _fod_hbm_wish(c);
+
+	if (!finger_hbm_mask) {
+		WRITE_ONCE(fod_hbm_allowed, false);
+		_sde_connector_update_finger_hbm_status(&c->base);
+		if (READ_ONCE(fod_mask_req)) {
+			WRITE_ONCE(fod_mask_req, false);
+			_fod_mask_commit(c);
+		}
+	} else if (wish && !READ_ONCE(fod_hbm_allowed)) {
+		WRITE_ONCE(fod_mask_alpha, _fod_mask_alpha(c));
+		WRITE_ONCE(fod_mask_ok, false);
+		WRITE_ONCE(fod_mask_req, true);
+		ret = _fod_mask_commit(c);
+		if (ret || !READ_ONCE(fod_mask_ok)) {
+			SDE_ERROR("finger hbm mask not shown (%d), full-screen hbm\n", ret);
+			WRITE_ONCE(fod_mask_req, false);
+		}
+		WRITE_ONCE(fod_hbm_allowed, true);
+		_sde_connector_update_finger_hbm_status(&c->base);
+	} else if (!wish && READ_ONCE(fod_hbm_allowed)) {
+		WRITE_ONCE(fod_hbm_allowed, false);
+		_sde_connector_update_finger_hbm_status(&c->base);
+		if (READ_ONCE(fod_mask_req)) {
+			WRITE_ONCE(fod_mask_req, false);
+			_fod_mask_commit(c);
+		}
+	} else {
+		_sde_connector_update_finger_hbm_status(&c->base);
+	}
+unlock:
+	mutex_unlock(&finger_conn_lock);
+}
+static DECLARE_WORK(finger_press_work, _fod_press_work);
+
+static void _fod_input_event(struct input_handle *handle, unsigned int type,
+		unsigned int code, int value)
+{
+	struct fod_touch *t = container_of(handle, struct fod_touch, handle);
+	bool in = false;
+	int i;
+
+	if (type == EV_ABS) {
+		switch (code) {
+		case ABS_MT_SLOT:
+			if (value >= 0 && value < FOD_MAX_SLOTS)
+				t->slot = value;
+			break;
+		case ABS_MT_TRACKING_ID:
+			t->s[t->slot].down = value >= 0;
+			break;
+		case ABS_MT_POSITION_X:
+			t->s[t->slot].x = value;
+			break;
+		case ABS_MT_POSITION_Y:
+			t->s[t->slot].y = value;
+			break;
+		}
+		return;
+	}
+	if (type != EV_SYN || code != SYN_REPORT)
+		return;
+
+	for (i = 0; i < FOD_MAX_SLOTS && !in; i++) {
+		s64 dx = t->s[i].x - finger_hbm_x;
+		s64 dy = t->s[i].y - finger_hbm_y;
+
+		in = t->s[i].down &&
+			dx * dx + dy * dy <= (s64)finger_hbm_r * finger_hbm_r;
+	}
+	if (in != READ_ONCE(finger_pressed)) {
+		WRITE_ONCE(finger_pressed, in);
+		queue_work(system_highpri_wq, &finger_press_work);
+	}
+}
+
+static bool _fod_input_match(struct input_handler *handler, struct input_dev *dev)
+{
+	return test_bit(ABS_MT_SLOT, dev->absbit) &&
+		test_bit(ABS_MT_POSITION_X, dev->absbit) &&
+		test_bit(ABS_MT_POSITION_Y, dev->absbit);
+}
+
+static int _fod_input_connect(struct input_handler *handler,
+		struct input_dev *dev, const struct input_device_id *id)
+{
+	struct fod_touch *t = kzalloc(sizeof(*t), GFP_KERNEL);
+	int rc;
+
+	if (!t)
+		return -ENOMEM;
+	t->handle.dev = dev;
+	t->handle.handler = handler;
+	t->handle.name = "sde_fod";
+	rc = input_register_handle(&t->handle);
+	if (rc)
+		goto err_free;
+	rc = input_open_device(&t->handle);
+	if (rc)
+		goto err_unreg;
+	atomic_inc(&fod_touch_count);
+	return 0;
+err_unreg:
+	input_unregister_handle(&t->handle);
+err_free:
+	kfree(t);
+	return rc;
+}
+
+static void _fod_input_disconnect(struct input_handle *handle)
+{
+	atomic_dec(&fod_touch_count);
+	input_close_device(handle);
+	input_unregister_handle(handle);
+	kfree(container_of(handle, struct fod_touch, handle));
+}
+
+static const struct input_device_id fod_input_ids[] = {
+	{ .flags = INPUT_DEVICE_ID_MATCH_EVBIT, .evbit = { BIT_MASK(EV_ABS) } },
+	{ },
+};
+
+static struct input_handler fod_input_handler = {
+	.event = _fod_input_event,
+	.match = _fod_input_match,
+	.connect = _fod_input_connect,
+	.disconnect = _fod_input_disconnect,
+	.name = "sde_fod",
+	.id_table = fod_input_ids,
+};
+
+static bool fod_input_registered;
+
+static void _sde_connector_finger_hbm_register(struct sde_connector *c_conn)
+{
+	mutex_lock(&finger_conn_lock);
+	if (!finger_conn) {
+		fod_input_registered = !input_register_handler(&fod_input_handler);
+		if (!fod_input_registered)
+			SDE_ERROR("finger hbm: no input handler, press gate off\n");
+		finger_conn = c_conn;
+	}
+	mutex_unlock(&finger_conn_lock);
+}
+
+static void _sde_connector_finger_hbm_unregister(struct sde_connector *c_conn)
+{
+	bool mine;
+
+	mutex_lock(&finger_conn_lock);
+	mine = (finger_conn == c_conn);
+	if (mine)
+		finger_conn = NULL;
+	mutex_unlock(&finger_conn_lock);
+	if (!mine)
+		return;
+	if (fod_input_registered)
+		input_unregister_handler(&fod_input_handler);
+	fod_input_registered = false;
+	cancel_work_sync(&finger_press_work);
+	WRITE_ONCE(finger_pressed, false);
 }
 
 static void _sde_connector_set_brightness_work(struct work_struct *work)
@@ -941,7 +1357,7 @@ static void _sde_connector_set_brightness_work(struct work_struct *work)
 
 	/*if enable hbm_mode, set brightness to HBM brightness*/
 	if (finger_hbm_flag || hbm_mode_flag) {
-		SDE_ERROR("update hbm brightness\n");
+		SDE_DEBUG("update hbm brightness\n");
 		bl_lvl = display->panel->bl_config.bl_hbm_level;
 	}
 
@@ -1196,6 +1612,8 @@ void sde_connector_destroy(struct drm_connector *connector)
 	}
 
 	c_conn = to_sde_connector(connector);
+	_sde_connector_finger_hbm_unregister(c_conn);
+	cancel_delayed_work_sync(&c_conn->finger_hbm_timeout_work);
 
 	if (c_conn->sysfs_dev)
 		device_unregister(c_conn->sysfs_dev);
@@ -1223,6 +1641,7 @@ void sde_connector_destroy(struct drm_connector *connector)
 		backlight_device_unregister(c_conn->bl_device);
 	drm_connector_unregister(connector);
 	mutex_destroy(&c_conn->lock);
+	mutex_destroy(&c_conn->finger_hbm_lock);
 	sde_fence_deinit(c_conn->retire_fence);
 	drm_connector_cleanup(connector);
 	msm_property_destroy(&c_conn->property_info);
@@ -1716,11 +2135,14 @@ static int sde_connector_atomic_set_property(struct drm_connector *connector,
 				&c_state->property_state, idx);
 		break;
 	case CONNECTOR_PROP_FINGER_FLAG:
-		SDE_ERROR_CONN(c_conn, "set finger flag: %d\n", val);
+		SDE_DEBUG("set finger flag: %d\n", val);
 		if (c_conn->finger_flag != val) {
 			c_conn->finger_flag = val;
+			c_conn->finger_hbm_expired = false;
 			c_conn->fingerlayer_dirty = true;
+			queue_work(system_highpri_wq, &finger_press_work);
 		}
+		break;
 	default:
 		break;
 	}
@@ -3620,6 +4042,11 @@ struct drm_connector *sde_connector_init(struct drm_device *dev,
 	INIT_DELAYED_WORK(&c_conn->status_work,
 			sde_connector_check_status_work);
 	INIT_WORK(&c_conn->set_brightness_work, _sde_connector_set_brightness_work);
+	mutex_init(&c_conn->finger_hbm_lock);
+	INIT_DELAYED_WORK(&c_conn->finger_hbm_timeout_work,
+			_sde_connector_finger_hbm_timeout_work);
+	if (connector_type == DRM_MODE_CONNECTOR_DSI)
+		_sde_connector_finger_hbm_register(c_conn);
 
 	return &c_conn->base;
 
@@ -3638,6 +4065,7 @@ error_destroy_property:
 	msm_property_destroy(&c_conn->property_info);
 error_cleanup_fence:
 	mutex_destroy(&c_conn->lock);
+	mutex_destroy(&c_conn->finger_hbm_lock);
 	sde_fence_deinit(c_conn->retire_fence);
 error_cleanup_conn:
 	drm_connector_cleanup(&c_conn->base);
