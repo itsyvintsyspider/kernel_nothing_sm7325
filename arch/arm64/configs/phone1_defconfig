@@ -8,6 +8,10 @@
 #     cpuhp_state enum and struct layouts that the stock vendor modules were
 #     built against, so turning it off breaks the module ABI. Every CoreSight
 #     driver beneath it is disabled instead.
+#   - Networking: fq_codel is the default qdisc (fq is also built in) to
+#     avoid bufferbloat; CUBIC stays the default congestion control and BBR
+#     is built in so it can be selected at runtime (a module could not be
+#     loaded from boot.img alone).
 #   - Do not enable CONFIG_UAPI_HEADER_TEST with a glibc that lacks the
 #     __float128 handling it needs (it fails to build the header tests).
 CONFIG_LOCALVERSION="-qgki"
@@ -159,6 +163,11 @@ CONFIG_NET_IPVTI=y
 CONFIG_INET_ESP=y
 CONFIG_INET_UDP_DIAG=y
 CONFIG_INET_DIAG_DESTROY=y
+CONFIG_TCP_CONG_ADVANCED=y
+# CONFIG_TCP_CONG_BIC is not set
+# CONFIG_TCP_CONG_WESTWOOD is not set
+# CONFIG_TCP_CONG_HTCP is not set
+CONFIG_TCP_CONG_BBR=y
 CONFIG_IPV6_ROUTER_PREF=y
 CONFIG_IPV6_ROUTE_INFO=y
 CONFIG_IPV6_OPTIMISTIC_DAD=y
@@ -251,7 +260,11 @@ CONFIG_BRIDGE=y
 CONFIG_NET_SCHED=y
 CONFIG_NET_SCH_HTB=y
 CONFIG_NET_SCH_PRIO=y
+CONFIG_NET_SCH_FQ_CODEL=y
+CONFIG_NET_SCH_FQ=y
 CONFIG_NET_SCH_INGRESS=y
+CONFIG_NET_SCH_DEFAULT=y
+CONFIG_DEFAULT_FQ_CODEL=y
 CONFIG_NET_CLS_FW=y
 CONFIG_NET_CLS_U32=y
 CONFIG_NET_CLS_BPF=y
